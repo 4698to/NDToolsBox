@@ -1,0 +1,526 @@
+﻿<UserControl 
+  x:Class="NDToolsBox.TextSearchDemoControl"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local ="clr-namespace:NDToolsBox"
+    FocusManager.FocusedElement="{Binding ElementName=searchTextBox}"
+    Name="ndbox"
+    MaxWidth="350" MinHeight="450"
+  >
+    <UserControl.Resources>
+        <FontFamily x:Key="IconFont">/NDToolsBox;Component/Fonts/#iconfont</FontFamily>
+        <SolidColorBrush x:Key="MaxTextColor" Color="{Binding GetMaxTextColor}"/>
+        <SolidColorBrush x:Key="MaxUiBackgroundColor" Color="{Binding GetMaxUiBackgroundColor}"/>
+        <!--主题颜色-->
+        <SolidColorBrush x:Key="HeadLineColor" Color="{Binding GetThemeColor}"/>
+
+        <SolidColorBrush x:Key="ScriptTreeBackGroundColor" Color="{Binding GetTreeBackGroundColor}"/>
+        
+        <!--脚本选项的背景颜色-->
+        <SolidColorBrush x:Key="BorderColor" Color="{Binding GetBorderColor}"/>
+        <!--鼠标滑过颜色-->
+        <SolidColorBrush x:Key="MouseItmeColor" Color="{Binding GetMouseItmeColor}" />
+        <!--<SolidColorBrush x:Key="MouseItmeColor" Color="Firebrick"/> -->
+        <!--按钮字体颜色-->
+        <SolidColorBrush x:Key="SecondaryButtonColor" Color="LightGray"/>
+        
+        <!--选中时的背景颜色-->
+        <SolidColorBrush x:Key="SecondaryTextColor" Color="{Binding GetSecondaryTextColor}"/>
+        <!--选中时的背景颜色-->
+        <SolidColorBrush x:Key="SelectIconColor" Color="PaleVioletRed" />
+
+
+        <Style x:Key="titlename" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Foreground" Value="{StaticResource HeadLineColor}"/>
+            <Setter Property="Margin" Value="5 0 5 0"/>
+        </Style>
+        
+        <Style x:Key="VersionButton" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" BorderBrush="{StaticResource BorderColor}" BorderThickness="2" CornerRadius="4" Height="20">
+                            <StackPanel x:Name="panle" Orientation="Horizontal" >
+                                <TextBlock x:Name="Content" Text="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2 0 2 0"/>
+                                <TextBlock x:Name="Up" Text="▼" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2 0 2 0"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True" >
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource HeadLineColor}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsUpdata}" Value="true">
+                                <Setter Property="BorderThickness" TargetName="border" Value="2" />
+                                <Setter Property="Visibility" TargetName="Up" Value="Visible"/>
+                                <Setter Property="Foreground" TargetName="Up" Value="{StaticResource HeadLineColor}"/>
+
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsUpdata}" Value="false">
+                                <Setter Property="Visibility" TargetName="Up" Value="Hidden"/>
+                                <Setter Property="BorderThickness" TargetName="border" Value="0" />
+
+                            </DataTrigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="testButton" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}" />
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="Content" Text="{TemplateBinding Content}" FontFamily="{StaticResource IconFont}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True" >
+                                <Setter Property="Foreground" TargetName="Content" Value="{StaticResource HeadLineColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HelpButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" BorderBrush="{x:Null}" BorderThickness="1" CornerRadius="4" >
+                            <TextBlock x:Name="tblock" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" Background="{TemplateBinding Background}" VerticalAlignment="Center" HorizontalAlignment="Center" >
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform x:Name="tblocktransState" X="0" />
+                                </TextBlock.RenderTransform>
+                            </TextBlock>    
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource HeadLineColor}"/>
+                                <Setter TargetName="tblock" Property="Foreground" Value="{StaticResource HeadLineColor}" />
+                                
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="tblocktransState" Storyboard.TargetProperty="X" To="21" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="tblocktransState" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.3" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                                
+                            </Trigger>
+                            
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource HeadLineColor}"/>
+                                <Setter TargetName="tblock" Property="Foreground" Value="{StaticResource HeadLineColor}" />
+
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="clearbutton" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="25"/>
+            <Setter Property="Height" Value="25" />
+            <Setter Property="Content" Value="✖" />
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0 0 0 0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border" BorderBrush="{StaticResource BorderColor}" BorderThickness="0">
+                            <TextBlock x:Name="Content" Text="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True" >
+                                <Setter Property="Foreground" TargetName="Content" Value="{StaticResource HeadLineColor}"/>
+                                <Setter Property="BorderThickness" TargetName="Border" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+        </Style>
+        
+        <Style x:Key="scriptTree" TargetType="{x:Type TreeView}">
+            <Setter Property="Background" Value="{StaticResource ScriptTreeBackGroundColor}"/>
+            <Setter Property="BorderThickness" Value="0" />
+            <!--<Setter Property="FontFamily"  Value="{StaticResource IconFont}" />-->
+            
+        </Style>
+        <Style x:Key="scriptHelpBox" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{StaticResource ScriptTreeBackGroundColor}"/>
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource HeadLineColor}"/>
+        </Style>
+        <!-- ScrollViewer 滚动条 -->
+        <Style x:Key="ScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Opacity" Value="0.2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <!--滚动条宽度-->
+                        <Grid Width="11">
+                            <!--滚动条颜色-->
+                            <Border Background="{StaticResource BorderColor}" CornerRadius="2"/>
+                        </Grid>
+                        <!--触发器-->
+                        
+                    </ControlTemplate>
+                    
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <EventTrigger.Actions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Duration="0:0:0.2" Storyboard.TargetProperty="Opacity" To="1"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger.Actions>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <EventTrigger.Actions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Duration="0:0:0.2" Storyboard.TargetProperty="Opacity" To="0.5"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger.Actions>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+            
+        <!--滚动条竖条上半-->
+        <Style x:Key="VerticalScrollBarPageButtonUp" TargetType="{x:Type RepeatButton}">
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="IsTabStop" Value="false"/>
+        </Style>
+
+
+        <Style TargetType="{x:Type ScrollBar}">
+            <!--滑动条轨道 宽带-->
+            <Setter Property="Width"  Value="12"/>
+            
+            <Setter Property="MinWidth"  Value="11"/>
+            <Setter Property="Template">
+                
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <!--轨道颜色-->
+                        <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"></RowDefinition>
+                            </Grid.RowDefinitions>
+                            <Track x:Name="PART_Track"   Grid.Row="0" IsEnabled="{TemplateBinding IsMouseOver}" IsDirectionReversed="true">
+                                <Track.DecreaseRepeatButton>
+                                    <!-- 滚动条，上半空 -->
+                                    <RepeatButton Style="{StaticResource VerticalScrollBarPageButtonUp}" Command="{x:Static ScrollBar.PageUpCommand}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <!-- 滚动条，下半空 -->
+                                    <RepeatButton Style="{StaticResource VerticalScrollBarPageButtonUp}" Command="{x:Static ScrollBar.PageDownCommand}"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <!-- 滚动条，自身按钮 -->
+                                    <Thumb Style="{StaticResource ScrollBarThumb}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <ContextMenu  x:Key="dynamicContextMenu" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
+            <MenuItem Header="复制" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GCopyItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+        </ContextMenu>
+        <Color x:Key="GlyphColor">#FF444444</Color>
+        <Color x:Key="GlyphMouseOver">sc#1, 0.004391443, 0.002428215, 0.242281124</Color>
+        <Style x:Key="TreeViewItemFocusVisual">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border>
+                            <Rectangle Margin="0,0,0,0" StrokeThickness="5" Stroke="Black" StrokeDashArray="1 2" Opacity="0" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ExpandCollapseToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid Width="20" Background="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CheckStates">
+                                    <VisualState x:Name="Checked">
+                                        <Storyboard>
+                                            <DoubleAnimation Duration="0:0:0.2" From="0" To="180" Storyboard.TargetName="CollapsedAndExpanded" Storyboard.TargetProperty="Angle"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Unchecked" >
+                                        <Storyboard>
+                                            <DoubleAnimation Duration="0:0:0.2" From="180" To="0" Storyboard.TargetName="CollapsedAndExpanded" Storyboard.TargetProperty="Angle"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Indeterminate" />
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <TextBlock x:Name="Collapsed" Text="&#xf4a0;" FontSize="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="1,1,1,1" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource HeadLineColor}" Background="Transparent">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform x:Name="CollapsedAndExpanded" Angle="0" CenterY="8" CenterX="8"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <!--<Path x:Name="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="1,1,1,1" Data="M 4 0 L 8 4 L 4 8 Z" Fill="{StaticResource HeadLineColor}" Stroke="{StaticResource HeadLineColor}" >-->
+                            <!--<Path.RenderTransform>-->
+                            <!--<RotateTransform x:Name="CollapsedAndExpanded" Angle="135" CenterY="3" CenterX="3"/> -->
+                            <!--</Path.RenderTransform> -->
+                            <!--</Path>-->
+                            
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" TargetName="Collapsed" Value="{StaticResource SelectIconColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" TargetName="Collapsed" Value="{StaticResource SelectIconColor}"/>
+                                <!--<Setter Property="Fill" TargetName="Collapsed" Value="{StaticResource MouseItmeColor}"/>-->
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Color x:Key="SelectedBackgroundColor">#FFC5CBF9</Color>
+        <Color x:Key="SelectedUnfocusedColor">#FFDDDDDD</Color>
+        
+        <Style x:Key="{x:Type TreeViewItem}" TargetType="{x:Type TreeViewItem}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Margin" Value="0 2 0 2"/>
+            <Setter Property="Padding" Value="1,0,0,0" />
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource TreeViewItemFocusVisual}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition MinWidth="5" Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="26" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <VisualStateManager.VisualStateGroups>
+                                <!--https://learn.microsoft.com/zh-cn/dotnet/desktop/wpf/controls/treeview-styles-and-templates?view=netframeworkdesktop-4.8&redirectedfrom=MSDN -->
+                               
+                                
+                                <VisualStateGroup x:Name="ExpansionStates">
+                                    <VisualState x:Name="Expanded">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="ItemsHost">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Collapsed" />
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Border x:Name="Bd" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"  Background="{StaticResource MaxUiBackgroundColor}" CornerRadius="2" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="25"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="40"/>
+                                        <ColumnDefinition Width="10"/>
+
+                                    </Grid.ColumnDefinitions>
+                                    <ToggleButton x:Name="Expander" Grid.Column="0" Style="{StaticResource ExpandCollapseToggleStyle}" ClickMode="Press" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                    
+                                    <Border BorderBrush="{x:Null}" Grid.Column="1">
+                                        <TextBlock x:Name="Head_Icon" Text="&#xe7a5;" FontSize="16" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource HeadLineColor}" VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <Border Background="Transparent" BorderThickness="0" Grid.Column="2" >
+                                        <ContentPresenter x:Name="PART_Header"  ContentSource="Header" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Button x:Name="help" Grid.Column="3" Content="&#xe600;" Width="28" FontFamily="{StaticResource IconFont}" Click="help_Click" Style="{StaticResource HelpButton}" Background="Transparent" />
+                                    
+                                </Grid>
+                            </Border>
+                            <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed" Margin="0 2 0 0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="false">
+                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden" />
+                                
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="Head_Icon" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" TargetName="Bd" Value="{StaticResource SecondaryTextColor}"/>
+                                
+                            </Trigger>
+                            
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="HasHeader" Value="false" />
+                                    <Condition Property="Width" Value="Auto" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="PART_Header" Property="MinWidth" Value="75" />
+                            </MultiTrigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="HasHeader" Value="false" />
+                                    <Condition Property="Height" Value="Auto" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="PART_Header" Property="MinHeight" Value="19" />
+                            </MultiTrigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsFocused" Value="False"/>
+                                    <Condition SourceName="Bd" Property="IsMouseOver" Value="true"/>
+                                </MultiTrigger.Conditions>
+                                    <Setter Property="Background" Value="{StaticResource MouseItmeColor}" TargetName="Bd"/>
+                                
+                            </MultiTrigger>
+                            <!--是否显示 help 按钮-->
+                            <DataTrigger Binding="{Binding hasHelp}" Value="false">
+                                <Setter Property="Visibility" TargetName="help" Value="Collapsed" />
+                            </DataTrigger>
+                            
+                            
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+       
+    </UserControl.Resources>
+
+
+
+    <DockPanel LastChildFill="True" Background="{StaticResource MaxUiBackgroundColor}">
+    <!-- SEARCH AREA -->
+        <Border DockPanel.Dock="Top" BorderBrush="{StaticResource BorderColor}" BorderThickness="1,0,1,1">
+            <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#33000000" Offset="0" />
+            <GradientStop Color="#11000000" Offset="1" />
+            </LinearGradientBrush>
+            </Border.Background>
+            <!--头部 -->
+            <Grid>
+                <!--行-->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/> <!--标题行-->
+                    <RowDefinition Height="30"/>
+                    <RowDefinition/> <!--搜索行-->
+                </Grid.RowDefinitions>
+                
+                <!--标题行-->
+                <Grid Grid.Row="0" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="30"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                        <TextBlock x:Name="toolsname" Text="{Binding toolsName}" Style="{StaticResource titlename}" />
+
+                        <Button x:Name="versionname" Content="{Binding toolsVersion}" Style="{StaticResource VersionButton}" Click="versionname_Click"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" >
+                        <Button x:Name="setting" Content="&#xe608;" FontFamily="{StaticResource IconFont}" IsEnabled="True" Click="versionname_Click" Style="{StaticResource testButton}" FontSize="22" Margin="2 2 4 2" ToolTip="设置"/>
+                        <!-- <Button x:Name="close" Content="☒" Click="close_Click" Style="{StaticResource testButton}" FontSize="22" Margin="2 2 4 2" /> -->
+                        <!-- <Button x:Name="skin" IsEnabled="False" Style="{StaticResource testButton}" Content="◑" FontSize="22"  Margin="4 2 6 2"/>-->
+
+                    </StackPanel>
+                </Grid>
+                <!--搜索框表-->    
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="30"/><!--搜索按钮列-->
+                    </Grid.ColumnDefinitions>
+                    <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="2 2 2 2" CornerRadius="3" Background="{StaticResource ScriptTreeBackGroundColor}" ></Border>
+                    <TextBox x:Name="searchTextBox" Grid.Row="0" Grid.Column="0" TextChanged="searchTextBox_TextChanged" KeyDown="searchTextBox_KeyDown" GotKeyboardFocus="searchTextBox_GotKeyboardFocus" LostKeyboardFocus="searchTextBox_LostKeyboardFocus" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Height="25" Background="Transparent" CaretBrush="{StaticResource MaxTextColor}" Foreground="{StaticResource MaxTextColor}"  Margin="2 6 2 1" BorderThickness="0" VerticalAlignment="Center" />
+                    <!--<TextBlock x:Name="placeholder" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Background="#F2F4FF" Panel.ZIndex="-1" Height="30" Margin="0,0,0,4"/>-->
+                    <Button x:Name="textclear" Grid.Row="0" Grid.Column="0" Click="textclear_Click" Style="{StaticResource clearbutton}" ToolTip="清空搜索" Margin="0 0 4 0"/>
+                    
+                        <!--搜索按钮-->
+                    <Button Command="{Binding SearchCommand}" Click="Button_Click" Content="&#xe63f;" FontFamily="{StaticResource IconFont}" FontSize="22" Style="{StaticResource testButton}" Grid.Row="0" Grid.Column="1"/>
+
+                </Grid>
+            </Grid>
+        </Border>
+
+        <TextBox DockPanel.Dock="Bottom" x:Name="TextMessage" TextWrapping="Wrap" FontSize="12" Text="{Binding message,UpdateSourceTrigger=Explicit,Mode=OneWay}" ToolTip="搜索" Height="80" Margin="0,4,0,0" IsReadOnly="True" Style="{StaticResource scriptHelpBox}"/>
+        
+
+            <!-- FAMILY TREE -->
+        <TreeView ItemsSource="{Binding FirstGeneration ,UpdateSourceTrigger=PropertyChanged,Mode=OneWay}" ContextMenu="{StaticResource dynamicContextMenu}" TreeViewItem.Selected="TreeView_Selected" SelectedItemChanged="TreeView_SelectedItemChanged" MouseDoubleClick="TvDepartment_MouseDoubleClick" Style="{StaticResource scriptTree}" PreviewMouseLeftButtonDown="TreeView_PreviewMouseLeftButtonDown">
+
+            
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}" DataType="x:Type model:PersonViewModel">
+                    <!--方案2 -->
+                    <Grid >
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <!--<ColumnDefinition Width="30"/>-->
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="liName" Text="{Binding Name}" Grid.Column="0" Margin="1 0 0 0" Background="Transparent" VerticalAlignment="Center" Foreground ="{StaticResource MaxTextColor}" MouseEnter="liName_MouseEnter"/>
+                        
+                    </Grid>
+                    <HierarchicalDataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Exist}" Value="false">
+                            <Setter Property="TextDecorations" TargetName="liName" Value="Strikethrough"/>
+                        </DataTrigger>
+                    </HierarchicalDataTemplate.Triggers>
+                </HierarchicalDataTemplate>
+
+            </TreeView.ItemTemplate>
+
+        </TreeView>
+        
+        
+    
+    </DockPanel>
+</UserControl>

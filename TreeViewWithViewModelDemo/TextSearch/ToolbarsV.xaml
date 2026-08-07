@@ -1,0 +1,503 @@
+﻿<UserControl x:Class="NDToolsBox.TextSearch.ToolbarsV"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+            
+             xmlns:maxwpf ="clr-namespace:WPFCustomControls;assembly=WPFCustomControls"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:NDToolsBox.TextSearch"
+             xmlns:Nd="clr-namespace:NDToolsBox"
+            
+             mc:Ignorable="d" 
+             MaxWidth="96" MinWidth="96" MinHeight="600" 
+             >
+    
+    <UserControl.Resources>
+
+        <FontFamily x:Key="IconFont">/NDToolsBox;Component/Fonts/#iconfont</FontFamily>
+
+        <SolidColorBrush x:Key="HeadLineColor" Color="{Binding GetThemeColor}"/>
+
+        <SolidColorBrush x:Key="MaxTextColor" Color="{Binding GetMaxTextColor}"/>
+        <SolidColorBrush x:Key="MaxUiBackgroundColor" Color="{Binding GetMaxUiBackgroundColor}"/>
+        <!--按钮的背景颜色-->
+        <SolidColorBrush x:Key="ButtonColor_A" Color="{Binding GetButtonColor_A}"/>
+        <SolidColorBrush x:Key="ButtonColor_B" Color="{Binding GetButtonColor_B}"/>
+        <SolidColorBrush x:Key="ButtonColor_C" Color="{Binding GetButtonColor_C}"/>
+        <SolidColorBrush x:Key="ButtonColor_D" Color="{Binding GetButtonColor_D}"/>
+
+
+        <!--按钮的鼠标操作颜色-->
+        <SolidColorBrush x:Key="ButtonColor_Mouse" Color="{Binding GetMouseOverColor}"/>
+        <SolidColorBrush x:Key="ButtonColor_Mouse_Pressed" Color="{Binding GetMousePressedColor}"/>
+
+        <SolidColorBrush x:Key="SecondaryButtonColor" Color="LightGray"/>
+
+        <!-- 定义自定义的 ToggleButton 样式 -->
+        <Style x:Key="CustomToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Name="Border"
+                                Background="{TemplateBinding Background}" SnapsToDevicePixels="True"  Margin="0,0,0,0" CornerRadius="2">
+                            <TextBlock Foreground="{TemplateBinding Foreground}" x:Name="text" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" Text="{TemplateBinding Content}" VerticalAlignment="Center" TextAlignment="Center" />
+
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- 鼠标悬停时的触发器 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                            <!-- 按下时的触发器 -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ButtonColor_Mouse_Pressed}"/>
+                            </Trigger>
+                            <!-- 选中时的触发器 -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ButtonColor_Mouse_Pressed}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+
+
+        <!--第二排不可编辑按钮-->
+        <Style x:Key="BtnStyle" TargetType="Button">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{StaticResource ButtonColor_A}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                                <TextBlock x:Name="tblock" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!--第一排可编辑按钮-->
+        <Style x:Key="BtnInfoStyle" TargetType="Button">
+
+            <Setter Property="FontSize" Value="10" />
+
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{StaticResource ButtonColor_A}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                            <StackPanel Margin="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock x:Name="edit_text" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center"  Margin="0 0 0 0" TextTrimming="CharacterEllipsis" />
+                                <TextBox x:Name="edit_box" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Center" VerticalContentAlignment="Center" KeyDown="OnKeyDownHandler" Margin="0 0 0 0" Width="{TemplateBinding Width}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <DataTrigger Binding="{Binding IsEdit}" Value="false">
+                                <Setter Property="Visibility" TargetName="edit_box" Value="Collapsed"/>
+                                <Setter Property="Visibility" TargetName="edit_text" Value="Visible"/>
+
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding IsEdit}" Value="true">
+                                <Setter Property="Visibility" TargetName="edit_box" Value="Visible"/>
+                                <Setter Property="Visibility" TargetName="edit_text" Value="Collapsed"/>
+
+                            </DataTrigger>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="listBoxItemStyle2" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="listBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+            <Setter  Property="Width" Value="70" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="importBox" TargetType="{x:Type Button}">
+            <Setter Property="BorderBrush" Value="{StaticResource ButtonColor_A}" />
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="2" Background="{TemplateBinding Background}" BorderBrush="{StaticResource ButtonColor_A}" BorderThickness="1" SnapsToDevicePixels="True">
+
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- 鼠标悬停时的触发器 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse_Pressed}"/>
+                            </Trigger>
+                            
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                    
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <SolidColorBrush x:Key="Expander.Static.Circle.Stroke" Color="#FF333333"/>
+        <SolidColorBrush x:Key="Expander.Static.Circle.Fill" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="Expander.Static.Arrow.Stroke" Color="#FF333333"/>
+        <SolidColorBrush x:Key="Expander.MouseOver.Circle.Stroke" Color="#FF5593FF"/>
+        <SolidColorBrush x:Key="Expander.MouseOver.Circle.Fill" Color="#FFF3F9FF"/>
+        <SolidColorBrush x:Key="Expander.MouseOver.Arrow.Stroke" Color="#FF000000"/>
+        <SolidColorBrush x:Key="Expander.Pressed.Circle.Stroke" Color="#FF3C77DD"/>
+        <SolidColorBrush x:Key="Expander.Pressed.Circle.Fill" Color="#FFD9ECFF"/>
+        <SolidColorBrush x:Key="Expander.Pressed.Arrow.Stroke" Color="#FF000000"/>
+        <SolidColorBrush x:Key="Expander.Disabled.Circle.Stroke" Color="#FFBCBCBC"/>
+        <SolidColorBrush x:Key="Expander.Disabled.Circle.Fill" Color="#FFE6E6E6"/>
+        <SolidColorBrush x:Key="Expander.Disabled.Arrow.Stroke" Color="#FF707070"/>
+        
+        <Style x:Key="SettingButton" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}" />
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="Content" Text="{TemplateBinding Content}" FontFamily="{StaticResource IconFont}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True" >
+                                <Setter Property="Foreground" TargetName="Content" Value="{StaticResource HeadLineColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ExpanderDownHeaderStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border Padding="{TemplateBinding Padding}">
+                            <Grid Background="Transparent" SnapsToDevicePixels="False" HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="19"/>
+                                    <ColumnDefinition Width="19"/>
+                                    <ColumnDefinition Width="19"/>
+
+                                </Grid.ColumnDefinitions>
+                                <Path x:Name="arrow" Data="M 1,1.5 L 4.5,5 L 8,1.5" HorizontalAlignment="Center" Stroke="{StaticResource Expander.Static.Arrow.Stroke}" SnapsToDevicePixels="false" StrokeThickness="2" VerticalAlignment="Center"/>
+                                <ContentPresenter Grid.Column="1" HorizontalAlignment="Center" Margin="0,0,0,0" RecognizesAccessKey="True" SnapsToDevicePixels="True" VerticalAlignment="Center">
+                                    <ContentPresenter.RenderTransform >
+                                        <TranslateTransform x:Name="ContentPresenter_text" X="0" />
+                                    </ContentPresenter.RenderTransform>
+                                </ContentPresenter>
+                                <Path x:Name="arrow2" Grid.Column="2" Data="M 1,1.5 L 4.5,5 L 8,1.5" HorizontalAlignment="Center" Stroke="{StaticResource Expander.Static.Arrow.Stroke}" SnapsToDevicePixels="false" StrokeThickness="2" VerticalAlignment="Center"/>
+                                
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="true">
+                                <Setter Property="Data" TargetName="arrow" Value="M 1,4.5  L 4.5,1  L 8,4.5"/>
+                                <Setter Property="Data" TargetName="arrow2" Value="M 1,4.5  L 4.5,1  L 8,4.5"/>
+
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Stroke" TargetName="arrow" Value="{StaticResource Expander.MouseOver.Arrow.Stroke}"/>
+                                <Setter Property="Stroke" TargetName="arrow2" Value="{StaticResource Expander.MouseOver.Arrow.Stroke}"/>
+
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter Property="Stroke" TargetName="arrow" Value="{StaticResource Expander.Pressed.Arrow.Stroke}"/>
+                                <Setter Property="Stroke" TargetName="arrow2" Value="{StaticResource Expander.Pressed.Arrow.Stroke}"/>
+
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ContentPresenter_text" Storyboard.TargetProperty="X" To="30" Duration="0:0:0.6" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ContentPresenter_text" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.3" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Stroke" TargetName="arrow" Value="{StaticResource Expander.Disabled.Arrow.Stroke}"/>
+                                <Setter Property="Stroke" TargetName="arrow2" Value="{StaticResource Expander.Disabled.Arrow.Stroke}"/>
+
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ExpanderStyle1" TargetType="{x:Type Expander}">
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ButtonColor_A}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Expander}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="1" SnapsToDevicePixels="true">
+                            <DockPanel>
+                                <ToggleButton x:Name="HeaderSite" ContentTemplate="{TemplateBinding HeaderTemplate}" Content="{TemplateBinding Header}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" DockPanel.Dock="Top" FontStretch="{TemplateBinding FontStretch}" Foreground="{TemplateBinding Foreground}" FontStyle="{TemplateBinding FontStyle}" FontFamily="{TemplateBinding FontFamily}" FontWeight="{TemplateBinding FontWeight}" FontSize="{TemplateBinding FontSize}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Margin="0" MinWidth="0" MinHeight="0" Padding="{TemplateBinding Padding}" Style="{StaticResource ExpanderDownHeaderStyle}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                <ContentPresenter x:Name="ExpandSite" DockPanel.Dock="Bottom" Focusable="false" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Visibility="Collapsed"/>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="true">
+                                <Setter Property="Visibility" TargetName="ExpandSite" Value="Visible"/>
+                            </Trigger>
+                            
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+
+        </Style>
+        <ContextMenu  x:Key="dynamicContextMenu" Opened="dynamicContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
+            <MenuItem Header="编辑名字" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GEditItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="插入间隔" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding AddMarginCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="复制" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GCopyItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="黏贴" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GPasetItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="删除" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding RemoverItem}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="保存配置" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GSaveItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+        </ContextMenu>
+        <ContextMenu  x:Key="dynamicSpeedContextMenu" x:Name="SpeedContextMenu" Opened="dynamicSpeedContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
+            <MenuItem Header="1/4x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S1_Click" />
+            <MenuItem Header="1/2x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S2_Click" />
+            <MenuItem Header="1x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S3_Click" />
+            <MenuItem Header="2x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S4_Click" />
+            <MenuItem Header="4x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S5_Click" />
+
+        </ContextMenu>
+        <Style TargetType="{x:Type TabItem}" x:Key="TabItemStyle">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Grid >
+                            <Border Name="Border" Background="{StaticResource MaxUiBackgroundColor}" Margin="0,2,-6,0" BorderBrush="Black" BorderThickness="1,1,0,1" CornerRadius="4" SnapsToDevicePixels="True">
+                                <ContentPresenter x:Name="ContentSite" ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" RecognizesAccessKey="True" />
+                            </Border>
+                            <Rectangle Height="100" Width="3" Margin="0,0,-6,0" Stroke="Black" VerticalAlignment="Bottom" HorizontalAlignment="Right" StrokeThickness="0" Fill="{StaticResource MaxUiBackgroundColor}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource MaxUiBackgroundColor}" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource HeadLineColor}" />
+                                <Setter TargetName="Border" Property="BorderThickness" Value="2,2,0,2" />
+
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Background" Value="#FF6E6C67" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="FontWeight" Value="Bold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <ContentPresenter Content="{TemplateBinding Content}">
+                            <ContentPresenter.LayoutTransform>
+                                <RotateTransform Angle="270" />
+                            </ContentPresenter.LayoutTransform>
+                        </ContentPresenter>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="#FF6E6C67" />
+            <Setter Property="Height" Value="90" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontFamily" Value="DokChampa" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="UseLayoutRounding" Value="False" />
+        </Style>
+        <Style x:Key="tabGrids">
+            <Setter Property="Grid.Background" Value="#FFE5E5E5" />
+            <Setter Property="Grid.Margin" Value="6,10,10,10" />
+        </Style>
+    </UserControl.Resources>
+    <StackPanel Background="{StaticResource MaxUiBackgroundColor}">
+        <TabControl BorderThickness="0 0 0 0" Padding ="0" Margin="0" TabStripPlacement="Left" Background="{StaticResource MaxUiBackgroundColor}">
+            <TabItem Header="动画" Background ="{StaticResource ButtonColor_B}"  Width="14" Height="60" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}">
+            <StackPanel x:Name="dockpanel" Orientation="Vertical" Width="74" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
+                <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True">
+                <!--  -->
+                <ListBox x:Name="MyListBox" BorderThickness="0" Background="{StaticResource MaxUiBackgroundColor}"  ItemContainerStyle="{StaticResource listBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                 FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 0 0"
+                          >
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 1 0 1" >
+                                <!-- <Ellipse Height="14" Width="14" Fill="{Binding Color}"  VerticalAlignment="Center" Margin="5"/>
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5" FontSize="16"/>-->
+                                    <Button x:Name="MyListBoxButton" Content="{Binding Name}" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource BtnInfoStyle}" Width="64" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Button_Click"/>
+                            </StackPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Space}" Value="true">
+                                        <Setter Property="Margin" TargetName="MyListBoxButton" Value="0 5 0 0"/>
+                                
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Space}" Value="false">
+                                        <Setter Property="Margin" TargetName="MyListBoxButton" Value="0"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                    
+                            </DataTemplate>
+                    </ListBox.ItemTemplate>
+            
+                </ListBox>
+
+                </Expander>
+
+                <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 ">
+                    <ListBox x:Name="MyItemsControl" BorderThickness="0" ItemContainerStyle="{StaticResource listBoxItemStyle2}" Background="{StaticResource MaxUiBackgroundColor}" ItemsSource="{Binding SolidItems}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="ItemsControl_Drop" DragEnter="MyListBox_DragEnter"  ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <!--<UniformGrid Columns="2" Margin="0 0 0 0" Background="Transparent" HorizontalAlignment="Center" />-->
+                                <WrapPanel Width="Auto" IsItemsHost="True" x:Name="wpanel" Margin="4 0 0 0" Background="Transparent"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate >
+                                <Button x:Name="MyItemsControlButon" Width="30" Content ="{Binding Name}" Margin="1 1 1 1" Style="{StaticResource BtnInfoStyle}" Background ="{StaticResource ButtonColor_B}" Click="Button_Click"/>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Space}" Value="true">
+                                        <Setter Property="Margin" TargetName="MyItemsControlButon" Value="1 15 1 1"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Space}" Value="false">
+                                        <Setter Property="Margin" TargetName="MyItemsControlButon" Value="1 1 1 1"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                
+                    </ListBox>
+                </Expander>
+                <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 ">
+                    <StackPanel Margin="0 0 0 0" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                        <UniformGrid Columns="2" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
+                        <Button Width="30" Margin="1 1 1 1" Style="{StaticResource BtnStyle}" Content="链接" Click="Button_Click_link" Background ="{StaticResource ButtonColor_B}" ToolTip="先选的链接给后选"/>
+                            <Button Width="30" Margin="1 1 1 1" Style="{StaticResource BtnStyle}" Content="挂配" Click="Button_Click_Align" Background ="{StaticResource ButtonColor_B}" ToolTip="先选对齐链接给后选"/>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0 0 0 0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bip" Click="ToggleButton_Checked_bip" Background ="{StaticResource ButtonColor_C}" ToolTip="隐藏 biped"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bone" Click="ToggleButton_Checked_onlyBone" Background ="{StaticResource ButtonColor_C}" ToolTip="隐藏 Bone"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Box" Click="ToggleButton_Checked_box" Background ="{StaticResource ButtonColor_C}" ToolTip="显示为 Box"/>
+
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0 4 0 0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
+
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Mesh" Click="ToggleButton_Checked_Mesh" ToolTip="隐藏模型"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Shape" Click="ToggleButton_Checked_Shape" ToolTip="隐藏曲线形状"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Help" Click="ToggleButton_Checked_Help" ToolTip="隐藏Help"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Bone" Click="ToggleButton_Checked_Bone" ToolTip="隐藏骨骼"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Light" Click="ToggleButton_Checked_Light" ToolTip="隐藏灯光"/>
+                            <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Camera" Click="ToggleButton_Checked_Camera" ToolTip="隐藏相机"/>
+                    </UniformGrid>
+                    </StackPanel>
+                </Expander>
+                
+
+                
+        
+
+            </StackPanel>
+            </TabItem>
+            <TabItem Header="绑定" Width="14" Height="60" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}">
+                <StackPanel x:Name="rig_dockpanel" Orientation="Vertical" Width="74" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
+                        <!--  -->
+                    <Nd:NDListBox x:Name="MyListBox_Rig" />
+
+                    <Nd:NDListBox x:Name="MyListBox_Rig_2" />
+
+                    <Nd:NDListBox x:Name="MyListBox_Rig_3" />
+
+                </StackPanel>
+            </TabItem>
+    </TabControl>
+        <Border BorderThickness="0, 2,0,0" CornerRadius="0" BorderBrush="{StaticResource ButtonColor_A}" Margin="0 10 0 0">
+
+            <WrapPanel Orientation="Horizontal" Background="{DynamicResource MaxUiBackgroundColor}" HorizontalAlignment="Center" Margin="0 5 0 0" >
+                <ToggleButton x:Name="MySpeedButton" Content="Speed" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource CustomToggleButtonStyle}" Width="70" ContextMenu="{StaticResource dynamicSpeedContextMenu}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Click="MySpeedButton_Click"/>
+                <maxwpf:WpfSpinner x:Name="sp_start" Width="70" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeStart }" Precision="0" Margin="0 4 0 1" VerticalContentAlignment="Center" />
+                <maxwpf:WpfSpinner x:Name="sp_end" Width="70" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeEnd}" Precision="0" Margin="0 1 0 1" VerticalContentAlignment="Center" />
+
+            <Button x:Name="importA" Style="{StaticResource importBox}" ToolTip="FBX 拖拽到此" Width="70" Height="30" Margin="0 4 0 2" VerticalContentAlignment="Center" AllowDrop="True" Drop="inport_Drop" DragEnter="inport_DragEnter"/>
+            
+
+            </WrapPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,135 @@
+{
+  "id": "4261402",
+  "name": "MaxScriptLib",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "6530758",
+      "name": "add",
+      "font_class": "add",
+      "unicode": "e624",
+      "unicode_decimal": 58916
+    },
+    {
+      "icon_id": "15179192",
+      "name": "add",
+      "font_class": "add1",
+      "unicode": "e6b4",
+      "unicode_decimal": 59060
+    },
+    {
+      "icon_id": "40457791",
+      "name": "add",
+      "font_class": "a-add_icon1x-2",
+      "unicode": "e646",
+      "unicode_decimal": 58950
+    },
+    {
+      "icon_id": "7821176",
+      "name": "刷新",
+      "font_class": "shuaxin",
+      "unicode": "e650",
+      "unicode_decimal": 58960
+    },
+    {
+      "icon_id": "8084193",
+      "name": "刷新",
+      "font_class": "shuaxin1",
+      "unicode": "e616",
+      "unicode_decimal": 58902
+    },
+    {
+      "icon_id": "13478739",
+      "name": "刷新",
+      "font_class": "A",
+      "unicode": "e6f0",
+      "unicode_decimal": 59120
+    },
+    {
+      "icon_id": "35108836",
+      "name": "刷新 (4)",
+      "font_class": "a-shuaxin4",
+      "unicode": "ea5e",
+      "unicode_decimal": 59998
+    },
+    {
+      "icon_id": "1973163",
+      "name": "刷新",
+      "font_class": "repeat__easyi",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "28687154",
+      "name": "close",
+      "font_class": "close",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "38410278",
+      "name": "关闭",
+      "font_class": "guanbi-01",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "9966958",
+      "name": "菱形",
+      "font_class": "lingxing",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "5354181",
+      "name": "点",
+      "font_class": "dian",
+      "unicode": "e7a5",
+      "unicode_decimal": 59301
+    },
+    {
+      "icon_id": "695192",
+      "name": "搜索",
+      "font_class": "sousuo",
+      "unicode": "e63f",
+      "unicode_decimal": 58943
+    },
+    {
+      "icon_id": "7817288",
+      "name": "设置",
+      "font_class": "shezhi",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "21231851",
+      "name": "文件夹",
+      "font_class": "wenjianjia",
+      "unicode": "f4a0",
+      "unicode_decimal": 62624
+    },
+    {
+      "icon_id": "27401815",
+      "name": "皮肤",
+      "font_class": "pifu",
+      "unicode": "eda1",
+      "unicode_decimal": 60833
+    },
+    {
+      "icon_id": "1330555",
+      "name": "帮助中心",
+      "font_class": "bangzhuzhongxin",
+      "unicode": "e735",
+      "unicode_decimal": 59189
+    },
+    {
+      "icon_id": "7057680",
+      "name": "搜索",
+      "font_class": "icon-sousuo",
+      "unicode": "e688",
+      "unicode_decimal": 59016
+    }
+  ]
+}

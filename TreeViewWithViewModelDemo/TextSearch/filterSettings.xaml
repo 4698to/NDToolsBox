@@ -1,0 +1,75 @@
+﻿<Window x:Class="NDToolsBox.filterSettings"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NDToolsBox"
+        mc:Ignorable="d"
+        Title="过滤设置" Height="220" Width="260" ResizeMode="NoResize" MinHeight="140" MinWidth="220">
+    <Window.Resources>
+        <Style x:Key="InfoStyle" TargetType="CheckBox">
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+
+        </Style>
+        <Style x:Key="InfoStyleButton" TargetType="Button">
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+            <Setter Property="Width" Value="65" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="InfoStyleText" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Width" Value="116" />
+            <Setter Property="Height" Value="22" />
+        </Style>
+        <Style x:Key="InfoStyleTextBox" TargetType="TextBox">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Width" Value="135" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#FF474747" >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="10*"></RowDefinition>
+            <RowDefinition Height="17*"></RowDefinition>
+            <RowDefinition Height="17*"></RowDefinition>
+            <RowDefinition Height="17*"></RowDefinition>
+            <RowDefinition Height="17*"></RowDefinition>
+            <RowDefinition Height="17*"></RowDefinition>
+            <RowDefinition Height="10*"></RowDefinition>
+
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4*"></ColumnDefinition>
+            <ColumnDefinition Width="20*"></ColumnDefinition>
+            <ColumnDefinition Width="10*"/>
+            <ColumnDefinition Width="2*"></ColumnDefinition>
+
+        </Grid.ColumnDefinitions>
+        <CheckBox x:Name="filter_a" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="1" Style="{StaticResource InfoStyle}">
+            <GroupBox x:Name="groupBox" Header="GroupBox"/>
+        </CheckBox>
+        <TextBox x:Name="filter_a_text" LostKeyboardFocus="filter_a_text_LostKeyboardFocus" GotKeyboardFocus="filter_a_text_GotKeyboardFocus" Grid.Row="1" Grid.Column="1" Text="sel" Grid.ColumnSpan="2" Style="{StaticResource InfoStyleTextBox}"/>
+
+        <CheckBox x:Name="filter_b" Content="" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="2" Style="{StaticResource InfoStyle}" />
+        <TextBox x:Name="filter_b_text" LostKeyboardFocus="filter_a_text_LostKeyboardFocus" GotKeyboardFocus="filter_a_text_GotKeyboardFocus"  Grid.Row="2" Grid.Column="1" Text="fbx" Grid.ColumnSpan="2" Style="{StaticResource InfoStyleTextBox}"/>
+
+        <CheckBox x:Name="filter_c" Content="" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="3" Style="{StaticResource InfoStyle}" />
+        <TextBox x:Name="filter_c_text" LostKeyboardFocus="filter_a_text_LostKeyboardFocus" GotKeyboardFocus="filter_a_text_GotKeyboardFocus" Grid.Row="3" Grid.Column="1" Text="c3" Grid.ColumnSpan="2" Style="{StaticResource InfoStyleTextBox}"/>
+
+        <CheckBox x:Name="filter_back" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource InfoStyle}"/>
+        <TextBlock x:Name="filter_back_name" Grid.Row="4" Grid.Column="1" Text="反向过滤" Style="{StaticResource InfoStyleText}" Foreground="White"/>
+        <Button x:Name="btn_import" Grid.Column="2" Content="导入" HorizontalAlignment="Center" Grid.Row="1" Click="btn_import_Click" Style="{StaticResource InfoStyleButton}"/>
+        <Button x:Name="btn_export" Grid.Column="2" Content="导出" HorizontalAlignment="Center" Grid.Row="2" Click="btn_export_Click" Style="{StaticResource InfoStyleButton}"/>
+        <Button x:Name="btn_cancel" Grid.Column="1" Content="取消" HorizontalAlignment="Left" Grid.Row="5"  Click="btn_cancel_Click" Style="{StaticResource InfoStyleButton}" />
+        <Button x:Name="btn_ok" Grid.Column="1" Content="确定" HorizontalAlignment="Right" Grid.Row="5" Click="btn_ok_Click" Style="{StaticResource InfoStyleButton}"/>
+
+    </Grid>
+</Window>

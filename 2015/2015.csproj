@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B29DA431-F5ED-45FC-AE3A-CB805CA95179}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>_2015</RootNamespace>
+    <AssemblyName>2015</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Autodesk.Max">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2015\Autodesk.Max.dll</HintPath>
+    </Reference>
+    <Reference Include="ManagedServices">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2015\ManagedServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UiViewModels">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2015\UiViewModels.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataAccess\Database.cs">
+      <Link>DataAccess\Database.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataAccess\WebAddress.cs">
+      <Link>DataAccess\WebAddress.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\City.cs">
+      <Link>DataModel\City.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\Person.cs">
+      <Link>DataModel\Person.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\Region.cs">
+      <Link>DataModel\Region.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\State.cs">
+      <Link>DataModel\State.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Ini.cs">
+      <Link>Ini.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Loader.cs">
+      <Link>Loader.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Properties\Resources.Designer.cs">
+      <Link>Properties\Resources.Designer.cs</Link>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Properties\Settings.Designer.cs">
+      <Link>Properties\Settings.Designer.cs</Link>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\TextSearchDemoControl.xaml.cs">
+      <Link>TextSearch\TextSearchDemoControl.xaml.cs</Link>
+      <DependentUpon>TextSearchDemoControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\FamilyTreeViewModel.cs">
+      <Link>TextSearch\ViewModel\FamilyTreeViewModel.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\MaxComm.cs">
+      <Link>TextSearch\ViewModel\MaxComm.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\PersonViewModel.cs">
+      <Link>TextSearch\ViewModel\PersonViewModel.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\TreeViewWithViewModelDemo\Properties\Resources.resx">
+      <Link>Properties\Resources.resx</Link>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\TreeViewWithViewModelDemo\Properties\Settings.settings">
+      <Link>Properties\Settings.settings</Link>
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\City.png">
+      <Link>TextSearch\Images\City.png</Link>
+    </Resource>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\Region.png">
+      <Link>TextSearch\Images\Region.png</Link>
+    </Resource>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\State.png">
+      <Link>TextSearch\Images\State.png</Link>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="..\TreeViewWithViewModelDemo\TextSearch\TextSearchDemoControl.xaml">
+      <Link>TextSearch\TextSearchDemoControl.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

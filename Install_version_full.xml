@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <old_v>0</old_v>
+  <NewUI>1</NewUI>
+  <version>4.83</version>
+  <data>2022-08-02</data>
+  <head>修复动画工具被动画轨迹工具组覆盖问题</head>
+  <site path="stdplugs" name="stdplugs.zip" size="923L" ></site>
+  <site path="scripts" name="NDtools_01.zip" size="1190603L" ></site>
+  <site path="scripts" name="NDtools_02.zip" size="393507L" ></site>
+  <site path="UI_ln" name="UI_ln.zip" size="750614L" ></site>
+  <site path="scripts\Startup" name="Startup.zip" size="3990L" ></site>
+</Root>

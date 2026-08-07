@@ -1,0 +1,271 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B0D49FB9-8335-49E8-B6FA-3E6ADA704AC4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>NDToolsBox</RootNamespace>
+    <AssemblyName>NDToolsBox</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;M2023</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;MAX2023</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;M2023</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE;M2023</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Autodesk.Max">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2023\Autodesk.Max.dll</HintPath>
+    </Reference>
+    <Reference Include="CSharpUtilities, Version=25.0.0.997, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2023\CSharpUtilities.dll</HintPath>
+    </Reference>
+    <Reference Include="ManagedServices">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2023\ManagedServices.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Controls, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Drawing, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Drawing.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Effects, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Effects.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Interactions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Prototyping.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Prototyping.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Prototyping.SketchControls, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.Expression.Prototyping.SketchControls.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SDK.Expression.Blend, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\Microsoft.SDK.Expression.Blend.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Xaml.Behaviors, Version=1.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Xaml.Behaviors.Wpf.1.1.31\lib\net45\Microsoft.Xaml.Behaviors.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Annotations, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ComponentModel.Annotations.5.0.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SDK.Expression.Blend.1.0.0\lib\net45\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="UiViewModels">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2023\UiViewModels.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WPFCustomControls">
+      <HintPath>D:\Program Files\Autodesk\3ds Max 2023\WPFCustomControls.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Max2019\NDBoxCuiDock.cs">
+      <Link>NDBoxCuiDock.cs</Link>
+    </Compile>
+    <Compile Include="..\Max2019\NDBoxToolBarCuiDock.cs">
+      <Link>NDBoxToolBarCuiDock.cs</Link>
+    </Compile>
+    <Compile Include="..\Max2022\Descriptor.cs">
+      <Link>Descriptor.cs</Link>
+    </Compile>
+    <Compile Include="..\Max2022\ScriptsUtilities.cs">
+      <Link>ScriptsUtilities.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataAccess\CfgHelpPersonXml.cs">
+      <Link>DataAccess\CfgHelpPersonXml.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataAccess\Database.cs">
+      <Link>DataAccess\Database.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataAccess\WebAddress.cs">
+      <Link>DataAccess\WebAddress.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\City.cs">
+      <Link>DataModel\City.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\Person.cs">
+      <Link>DataModel\Person.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\Region.cs">
+      <Link>DataModel\Region.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\DataModel\State.cs">
+      <Link>DataModel\State.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\GlobalUtility.cs">
+      <Link>GlobalUtility.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Ini.cs">
+      <Link>Ini.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\NDBoxActionCallback.cs">
+      <Link>NDBoxActionCallback.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\Properties\Settings.Designer.cs">
+      <Link>Properties\Settings.Designer.cs</Link>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\RangeChange.cs">
+      <Link>RangeChange.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\filterSettings.xaml.cs">
+      <Link>TextSearch\filterSettings.xaml.cs</Link>
+      <DependentUpon>filterSettings.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\TextSearchDemoControl.xaml.cs">
+      <Link>TextSearch\TextSearchDemoControl.xaml.cs</Link>
+      <DependentUpon>TextSearchDemoControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ToolbarsV.xaml.cs">
+      <Link>TextSearch\ToolbarsV.xaml.cs</Link>
+      <DependentUpon>ToolbarsV.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\FamilyTreeViewModel.cs">
+      <Link>TextSearch\ViewModel\FamilyTreeViewModel.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\PersonViewModel.cs">
+      <Link>TextSearch\ViewModel\PersonViewModel.cs</Link>
+    </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\toolbarsViewModle.cs">
+      <Link>TextSearch\ViewModel\toolbarsViewModle.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="SelectSetCuiDock.cs" />
+    <Compile Include="SelectSetToolBar.xaml.cs">
+      <DependentUpon>SelectSetToolBar.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="TextSearch\ViewModel\SelectSetViewModel.cs" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Resource Include="..\TreeViewWithViewModelDemo\Fonts\iconfont.ttf">
+      <Link>Fonts\iconfont.ttf</Link>
+    </Resource>
+    <None Include="..\TreeViewWithViewModelDemo\Properties\Settings.settings">
+      <Link>Properties\Settings.settings</Link>
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\TreeViewWithViewModelDemo\Image\setting.png">
+      <Link>Image\setting.png</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\City.png">
+      <Link>TextSearch\Images\City.png</Link>
+    </Resource>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\Region.png">
+      <Link>TextSearch\Images\Region.png</Link>
+    </Resource>
+    <Resource Include="..\TreeViewWithViewModelDemo\TextSearch\Images\State.png">
+      <Link>TextSearch\Images\State.png</Link>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="..\TreeViewWithViewModelDemo\TextSearch\filterSettings.xaml">
+      <Link>TextSearch\filterSettings.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="..\TreeViewWithViewModelDemo\TextSearch\TextSearchDemoControl.xaml">
+      <Link>TextSearch\TextSearchDemoControl.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="..\TreeViewWithViewModelDemo\TextSearch\ToolbarsV.xaml">
+      <Link>TextSearch\ToolbarsV.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="SelectSetToolBar.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>Copy "$(TargetDir)$(TargetName).dll" "D:\Program Files\Autodesk\3ds Max 2023\bin\assemblies\$(TargetName).dll"
+Copy "$(TargetDir)$(TargetName).dll" "G:\Git_NDBox\天晴动作组脚本工具v4.47For2015\NDBox\2023\assemblies\$(TargetName).dll"</PostBuildEvent>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,177 @@
+﻿<Window x:Class="NDToolsBox.SelectSetToolBar"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NDToolsBox"
+        mc:Ignorable="d"
+        MaxWidth="3074" MinWidth="200" MinHeight="30" Height="40" Width="150" x:Name="NDSeleMainWindow">
+    <Window.Background>
+        <SolidColorBrush Color="{Binding GetMaxUiBackgroundColor}" />
+    </Window.Background>
+    <Window.Resources>
+        
+
+        
+        <FontFamily x:Key="IconFont">/NDToolsBox;Component/Fonts/#iconfont</FontFamily>
+        <!--主题颜色-->
+        <SolidColorBrush x:Key="HeadLineColor" Color="{Binding GetThemeColor}"/>
+        <SolidColorBrush x:Key="MaxTextColor" Color="{Binding GetMaxTextColor}"/>
+        <SolidColorBrush x:Key="MaxUiBackgroundColor" Color="{Binding GetMaxUiBackgroundColor}"/>
+        <!--按钮的背景颜色-->
+        <SolidColorBrush x:Key="ButtonColor_A" Color="{Binding GetButtonColor_A}"/>
+        <SolidColorBrush x:Key="ButtonColor_B" Color="{Binding GetButtonColor_B}"/>
+        <SolidColorBrush x:Key="ButtonColor_C" Color="{Binding GetButtonColor_C}"/>
+        <SolidColorBrush x:Key="ButtonColor_D" Color="{Binding GetButtonColor_D}"/>
+        <!--按钮的鼠标操作颜色-->
+        <SolidColorBrush x:Key="ButtonColor_Mouse" Color="#2a89a4"/>
+        
+        
+        <Style x:Key="listBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+            
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!--第一排可编辑按钮-->
+        <Style x:Key="BtnInfoStyle" TargetType="Button">
+
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{StaticResource ButtonColor_A}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                            <StackPanel>
+                                <TextBlock x:Name="edit_text" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0 0 0 0"/>
+                                <TextBox x:Name="edit_box" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Center" VerticalContentAlignment="Center" KeyDown="OnKeyDownHandler" Margin="0 0 0 0" Width="{TemplateBinding Width}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <DataTrigger Binding="{Binding IsEdit}" Value="false">
+                                <Setter Property="Visibility" TargetName="edit_box" Value="Collapsed"/>
+                                <Setter Property="Visibility" TargetName="edit_text" Value="Visible"/>
+
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding IsEdit}" Value="true">
+                                <Setter Property="Visibility" TargetName="edit_box" Value="Visible"/>
+                                <Setter Property="Visibility" TargetName="edit_text" Value="Collapsed"/>
+
+                            </DataTrigger>
+
+                            
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--第二排不可编辑按钮-->
+        <Style x:Key="BtnStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="25" />
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{StaticResource ButtonColor_A}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="4" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                            <TextBlock x:Name="tblock" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4 0 4 0"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonColor_Mouse}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!--按钮字体颜色-->
+        <SolidColorBrush x:Key="SecondaryButtonColor" Color="LightGray"/>
+        <Style x:Key="SettingButton" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryButtonColor}" />
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="Content" Text="{TemplateBinding Content}" FontFamily="{StaticResource IconFont}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True" >
+                                <Setter Property="Foreground" TargetName="Content" Value="{StaticResource HeadLineColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        
+        
+    </Window.Resources>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5"/>
+    </WindowChrome.WindowChrome>
+    <Window.DataContext>
+        <local:SelectSetViewModel />
+    </Window.DataContext>
+    
+    <Grid x:Name="GridMain">
+
+
+        <Border x:Name="myBorder" CornerRadius ="4" BorderThickness ="2" BorderBrush="Black" Background="{StaticResource MaxUiBackgroundColor}" >
+            <StackPanel x:Name="dockpanel" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                <ItemsControl x:Name="MyListBox" ItemsSource="{Binding Items}" >
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Horizontal"></VirtualizingStackPanel>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
+                                <Button x:Name="MyListBoxButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Content="{Binding Name}" Style="{StaticResource BtnStyle}" Background="{Binding Color}" Margin="2 0 2 0" Padding="2 0 2 0"  FontSize="11" Height="26" Click="MyListBoxButton_Click"/>
+                                <StackPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="加入选择集" Command="{Binding Path=DataContext.AddNodeCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Index}"/>
+                                        <MenuItem Header="从选择集中移除" Command="{Binding Path=DataContext.RemoveNodeCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Index}"/>
+                                        <MenuItem Header="删除选择集" Command="{Binding Path=DataContext.RemoveCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
+                                        <Separator></Separator>
+                                        <MenuItem Header="创建选择集" Command="{Binding Path=DataContext.AddCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
+                                        <MenuItem Header="导入" Command="{Binding Path=DataContext.ImportCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
+                                        <MenuItem Header="导出" Command="{Binding Path=DataContext.ExportCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
+                                    </ContextMenu>          
+                                </StackPanel.ContextMenu>
+                            </StackPanel>
+
+                        </DataTemplate>
+
+                    </ItemsControl.ItemTemplate>
+
+
+                </ItemsControl>
+                <Button x:Name="MyListBoxAddButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe6b4;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="20 0 2 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxAddButton_Click" ToolTip="新建选择集" />
+                <Button x:Name="MyListBoxResetButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe650;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxResetButton_Click" ToolTip="刷新选择集"/>
+                <Button x:Name="MyListBoxSettingsButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe608;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="过滤词设置" Click="MyListBoxSettingsButton_Click"/>
+                <Button x:Name="MyListBoxCloseButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe607;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="鼠标右键调整大小"/>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
