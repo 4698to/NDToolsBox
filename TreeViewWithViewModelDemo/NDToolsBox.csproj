@@ -228,6 +228,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <Compile Include="TextSearch\ViewModel\toolbarsViewModle.cs" />
+    <Compile Include="TextSearch\ViewModel\CustomToolbarTab.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

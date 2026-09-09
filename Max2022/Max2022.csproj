@@ -169,6 +169,9 @@
       <Link>TextSearch\ToolbarsV.xaml.cs</Link>
       <DependentUpon>ToolbarsV.xaml</DependentUpon>
     </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\CustomToolbarTab.cs">
+      <Link>TextSearch\ViewModel\CustomToolbarTab.cs</Link>
+    </Compile>
     <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\toolbarsViewModle.cs">
       <Link>TextSearch\ViewModel\toolbarsViewModle.cs</Link>
     </Compile>

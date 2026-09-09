@@ -177,6 +177,41 @@ namespace NDToolsBox
             }
             return null;
         }
+
+        public static ToolBarTabsConfig ReadToolBarTabs(string xml_path)
+        {
+            if (!File.Exists(xml_path))
+            {
+                return new ToolBarTabsConfig();
+            }
+            try
+            {
+                string xmltext = File.ReadAllText(xml_path, new UTF8Encoding(false));
+                ToolBarTabsConfig cfg = DeserializeFromXmlString<ToolBarTabsConfig>(xmltext);
+                if (cfg == null)
+                {
+                    return new ToolBarTabsConfig();
+                }
+                if (cfg.Tabs == null)
+                {
+                    cfg.Tabs = new List<CustomToolbarTab>();
+                }
+                return cfg;
+            }
+            catch
+            {
+                return new ToolBarTabsConfig();
+            }
+        }
+
+        public static void SaveToolBarTabs(ToolBarTabsConfig cfg, string xml_path)
+        {
+            if (cfg == null)
+            {
+                cfg = new ToolBarTabsConfig();
+            }
+            SaveXml(cfg, xml_path);
+        }
         public static Person ReadToolListXml(string _Path, string max_root)
         {
             //string _Path = @"G:\Git_NDBox\天晴动作组脚本工具v4.47For2015\天晴盒子-脚本清单.xml";

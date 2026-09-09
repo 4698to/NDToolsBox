@@ -156,6 +156,38 @@ namespace MaxToolbars.Toobars
             }
         }
     }
+    public class SetItemSpacingCommand : ICommand
+    {
+        public readonly toolbarsViewModle _toolViewModel;
+
+        public SetItemSpacingCommand(toolbarsViewModle tool)
+        {
+            _toolViewModel = tool;
+        }
+
+        public event EventHandler CanExecuteChanged;
+
+        public bool CanExecute(object parameter)
+        {
+            return true;
+        }
+
+        public void Execute(object parameter)
+        {
+            SpacingValues values = UiPrompt.PromptSpacing(
+                "设置上下间距",
+                _toolViewModel.ItemMarginTop,
+                _toolViewModel.ItemMarginBottom);
+            if (values == null)
+            {
+                return;
+            }
+            _toolViewModel.ItemMarginTop = values.Top;
+            _toolViewModel.ItemMarginBottom = values.Bottom;
+            CfgHelpPersonXml.SaveXml(_toolViewModel, WebAddress.ToolBarItemConfig);
+        }
+    }
+
     public class EditItemCommand : ICommand
     {
         public readonly toolbarsViewModle _toolViewModel;
@@ -181,7 +213,17 @@ namespace MaxToolbars.Toobars
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
                 toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (item != null) {item.IsEdit = !item.IsEdit;}
+                if (item == null)
+                {
+                    return;
+                }
+                string newName = UiPrompt.PromptText("编辑名字", "请输入按钮显示名称：", item.Name);
+                if (string.IsNullOrWhiteSpace(newName))
+                {
+                    return;
+                }
+                item.Name = newName.Trim();
+                item.IsEdit = false;
             }
         }
     }
@@ -356,6 +398,9 @@ namespace MaxToolbars.Toobars
         private CopyItemCommand _copyItemCommand;
         private PasetItemCommand _pasetItemCommand;
         private AddMarginItemCommand _addMarginItemCommand;
+        private SetItemSpacingCommand _setItemSpacingCommand;
+        private int _itemMarginTop = 1;
+        private int _itemMarginBottom = 1;
 
         public toolbarsViewModle()
         {
@@ -366,6 +411,7 @@ namespace MaxToolbars.Toobars
             _copyItemCommand = new CopyItemCommand(this);
             _pasetItemCommand = new PasetItemCommand(this);
             _addMarginItemCommand = new AddMarginItemCommand(this);
+            _setItemSpacingCommand = new SetItemSpacingCommand(this);
 
         }
         public void NewItemsTools()
@@ -413,6 +459,43 @@ namespace MaxToolbars.Toobars
         public AddMarginItemCommand AddMarginCommand
         {
             get { return _addMarginItemCommand; }
+        }
+        public SetItemSpacingCommand SetItemSpacingCommand
+        {
+            get { return _setItemSpacingCommand; }
+        }
+        public int ItemMarginTop
+        {
+            get { return _itemMarginTop; }
+            set
+            {
+                if (_itemMarginTop == value)
+                {
+                    return;
+                }
+                _itemMarginTop = value;
+                this.OnPropertyChanged("ItemMarginTop");
+                this.OnPropertyChanged("ItemRowMargin");
+            }
+        }
+        public int ItemMarginBottom
+        {
+            get { return _itemMarginBottom; }
+            set
+            {
+                if (_itemMarginBottom == value)
+                {
+                    return;
+                }
+                _itemMarginBottom = value;
+                this.OnPropertyChanged("ItemMarginBottom");
+                this.OnPropertyChanged("ItemRowMargin");
+            }
+        }
+        [XmlIgnore]
+        public System.Windows.Thickness ItemRowMargin
+        {
+            get { return new System.Windows.Thickness(0, ItemMarginTop, 0, ItemMarginBottom); }
         }
         public PasetItemCommand GPasetItemCommand
         {

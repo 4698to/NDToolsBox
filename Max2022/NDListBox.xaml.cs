@@ -30,14 +30,13 @@ namespace NDToolsBox
         private object draggedItem;
         private int insertionIndex;
         private float list_box_item_height = 16f;//每个元素的高度
+        private bool _saveInitialized;
 
         public NDListBox()
         {
             InitializeComponent();
 
             _itemlist = new NDListBoxViewModle();
-            _itemlist.NewItemsTools();
-
             base.DataContext = _itemlist;
 
             this.Loaded += OnUserControlLoaded;  // 订阅 Loaded 事件
@@ -45,8 +44,30 @@ namespace NDToolsBox
         private void OnUserControlLoaded(object sender, RoutedEventArgs e)
         {
             // Loaded 事件触发时，XAML 已解析完成，Name 已赋值
-            _itemlist.SetSaveName(this.Name);
-            //Debug.WriteLine($"x:Name 值为：{controlName}");
+            if (!_saveInitialized && !string.IsNullOrEmpty(this.Name))
+            {
+                InitWithSaveName(this.Name);
+            }
+            else if (!_saveInitialized)
+            {
+                _itemlist.NewItemsTools();
+                _saveInitialized = true;
+            }
+        }
+
+        /// <summary>
+        /// 按稳定 Id 初始化保存路径，并尝试从 xml 加载列表项。
+        /// </summary>
+        public void InitWithSaveName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+            _saveInitialized = true;
+            _itemlist.SetSaveName(name);
+            _itemlist.LoadOrNewItems();
+            base.DataContext = _itemlist;
         }
         private void dynamicContextMenu_Opened(object sender, RoutedEventArgs e)
         {
@@ -347,6 +368,33 @@ namespace NDToolsBox
             }
         }
     }
+    public class NDListBoxSetItemSpacingCommand : NDListBoxItemCommand
+    {
+        public NDListBoxSetItemSpacingCommand()
+        {
+        }
+        public NDListBoxSetItemSpacingCommand(NDListBoxViewModle tool) : base(tool)
+        {
+        }
+        public override void Execute(object parameter)
+        {
+            SpacingValues values = UiPrompt.PromptSpacing(
+                "设置上下间距",
+                _toolViewModel.ItemMarginTop,
+                _toolViewModel.ItemMarginBottom);
+            if (values == null)
+            {
+                return;
+            }
+            _toolViewModel.ItemMarginTop = values.Top;
+            _toolViewModel.ItemMarginBottom = values.Bottom;
+            if (_toolViewModel.GSaveItemCommand != null && !string.IsNullOrEmpty(_toolViewModel.GSaveItemCommand.Save_Path))
+            {
+                CfgHelpPersonXml.SaveXml(_toolViewModel, _toolViewModel.GSaveItemCommand.Save_Path);
+            }
+        }
+    }
+
     public class NDListBoxEditItemCommand : NDListBoxItemCommand
     {
         public NDListBoxEditItemCommand()
@@ -361,7 +409,17 @@ namespace NDToolsBox
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
                 toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (item != null) { item.IsEdit = !item.IsEdit; }
+                if (item == null)
+                {
+                    return;
+                }
+                string newName = UiPrompt.PromptText("编辑名字", "请输入按钮显示名称：", item.Name);
+                if (string.IsNullOrWhiteSpace(newName))
+                {
+                    return;
+                }
+                item.Name = newName.Trim();
+                item.IsEdit = false;
             }
         }
     }
@@ -391,6 +449,9 @@ namespace NDToolsBox
         private NDListBoxCopyItemCommand _copyItemCommand;
         private NDListBoxPasetItemCommand _pasetItemCommand;
         private NDListBoxAddItemMarginCommand _addMarginItemCommand;
+        private NDListBoxSetItemSpacingCommand _setItemSpacingCommand;
+        private int _itemMarginTop = 1;
+        private int _itemMarginBottom = 1;
 
         [XmlIgnore]
         private string _name;
@@ -405,18 +466,53 @@ namespace NDToolsBox
             _copyItemCommand = new NDListBoxCopyItemCommand(this);
             _pasetItemCommand = new NDListBoxPasetItemCommand(this);
             _addMarginItemCommand = new NDListBoxAddItemMarginCommand(this);
+            _setItemSpacingCommand = new NDListBoxSetItemSpacingCommand(this);
         }
         public void SetSaveName(string n)
         { 
             _name = n;
             _SaveCommand.Save_Path = $@"{WebAddress.apppath}\{_name}.xml";
         }
+
+        public void LoadOrNewItems()
+        {
+            string path = _SaveCommand != null ? _SaveCommand.Save_Path : null;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                try
+                {
+                    string xmltext = File.ReadAllText(path, new UTF8Encoding(false));
+                    NDListBoxViewModle loaded = CfgHelpPersonXml.DeserializeFromXmlString<NDListBoxViewModle>(xmltext);
+                    if (loaded != null && loaded.Items != null && loaded.Items.Count > 0)
+                    {
+                        ItemMarginTop = loaded.ItemMarginTop;
+                        ItemMarginBottom = loaded.ItemMarginBottom;
+                        Items = loaded.Items;
+                        return;
+                    }
+                    if (loaded != null)
+                    {
+                        ItemMarginTop = loaded.ItemMarginTop;
+                        ItemMarginBottom = loaded.ItemMarginBottom;
+                    }
+                }
+                catch
+                {
+                }
+            }
+            if (Items == null || Items.Count == 0)
+            {
+                NewItemsTools();
+            }
+        }
+
         public void NewItemsTools()
         {
             _items = new ObservableCollection<toolbarItemViewModle>();
             _items.Add(new toolbarItemViewModle("将脚本"));
             _items.Add(new toolbarItemViewModle("拖拽到"));
             _items.Add(new toolbarItemViewModle("这里"));
+            this.OnPropertyChanged("Items");
         }
         public void AddNewCommitItem(ObservableCollection<toolbarItemViewModle> items, string commit, int index, string name)
         {
@@ -539,6 +635,43 @@ namespace NDToolsBox
         public NDListBoxAddItemMarginCommand AddMarginCommand
         {
             get { return _addMarginItemCommand; }
+        }
+        public NDListBoxSetItemSpacingCommand SetItemSpacingCommand
+        {
+            get { return _setItemSpacingCommand; }
+        }
+        public int ItemMarginTop
+        {
+            get { return _itemMarginTop; }
+            set
+            {
+                if (_itemMarginTop == value)
+                {
+                    return;
+                }
+                _itemMarginTop = value;
+                this.OnPropertyChanged("ItemMarginTop");
+                this.OnPropertyChanged("ItemRowMargin");
+            }
+        }
+        public int ItemMarginBottom
+        {
+            get { return _itemMarginBottom; }
+            set
+            {
+                if (_itemMarginBottom == value)
+                {
+                    return;
+                }
+                _itemMarginBottom = value;
+                this.OnPropertyChanged("ItemMarginBottom");
+                this.OnPropertyChanged("ItemRowMargin");
+            }
+        }
+        [XmlIgnore]
+        public Thickness ItemRowMargin
+        {
+            get { return new Thickness(0, ItemMarginTop, 0, ItemMarginBottom); }
         }
         public NDListBoxPasetItemCommand GPasetItemCommand
         {

@@ -38,6 +38,9 @@ namespace NDToolsBox.TextSearch
         private MyCallbackRangeChange m_rangechange;
         private GlobalDelegates.Delegate5 m_deleg;
 
+        private ToolBarTabsConfig _tabsConfig;
+        private bool _suppressTabSelection;
+
         public ToolbarsV()
         {
             
@@ -79,6 +82,295 @@ namespace NDToolsBox.TextSearch
 
             this.Unloaded += ToolbarsV_Unloaded;
 
+            LoadCustomTabs();
+        }
+
+        private void LoadCustomTabs()
+        {
+            _suppressTabSelection = true;
+            try
+            {
+                _tabsConfig = CfgHelpPersonXml.ReadToolBarTabs(WebAddress.ToolBarTabsConfig);
+                if (_tabsConfig == null)
+                {
+                    _tabsConfig = new ToolBarTabsConfig();
+                }
+                foreach (CustomToolbarTab tab in _tabsConfig.Tabs)
+                {
+                    if (tab == null || string.IsNullOrEmpty(tab.Id))
+                    {
+                        continue;
+                    }
+                    if (tab.ListIds == null)
+                    {
+                        tab.ListIds = new System.Collections.Generic.List<string>();
+                    }
+                    while (tab.ListIds.Count < 3)
+                    {
+                        tab.ListIds.Add("CustomTab_" + tab.Id + "_" + (tab.ListIds.Count + 1));
+                    }
+                    if (string.IsNullOrEmpty(tab.Header))
+                    {
+                        tab.Header = "自定义";
+                    }
+                    InsertCustomTabItem(tab, MainTabControl.Items.Count - 1);
+                }
+            }
+            finally
+            {
+                _suppressTabSelection = false;
+            }
+        }
+
+        private TabItem InsertCustomTabItem(CustomToolbarTab tabData, int insertIndex)
+        {
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Width = 74,
+                Background = (Brush)FindResource("MaxUiBackgroundColor")
+            };
+            panel.GotKeyboardFocus += dockpanel_GotKeyboardFocus;
+            panel.LostKeyboardFocus += dockpanel_LostKeyboardFocus;
+            panel.IsEnabledChanged += dockpanel_IsEnabledChanged;
+
+            if (tabData.ListIds == null)
+            {
+                tabData.ListIds = new System.Collections.Generic.List<string>();
+            }
+            while (tabData.ListIds.Count < 3)
+            {
+                tabData.ListIds.Add("CustomTab_" + tabData.Id + "_" + (tabData.ListIds.Count + 1));
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                var listBox = new NDListBox();
+                if (i > 0)
+                {
+                    listBox.Margin = new Thickness(0, 5, 0, 0);
+                }
+                listBox.InitWithSaveName(tabData.ListIds[i]);
+                panel.Children.Add(listBox);
+            }
+
+            var tabItem = new TabItem
+            {
+                Header = string.IsNullOrEmpty(tabData.Header) ? "自定义" : tabData.Header,
+                Width = 14,
+                Height = 60,
+                Margin = new Thickness(0),
+                Padding = new Thickness(0),
+                Style = (Style)FindResource("TabItemStyle"),
+                Background = (Brush)FindResource("ButtonColor_B"),
+                Content = panel,
+                Tag = tabData
+            };
+            tabItem.ContextMenu = CreateCustomTabContextMenu(tabItem);
+            // 自定义 TabItem 模板下，仅设 ContextMenu 时侧栏标题右键常打不开；手动打开并固定目标
+            tabItem.PreviewMouseRightButtonUp += CustomTabItem_PreviewMouseRightButtonUp;
+
+            if (insertIndex < 0 || insertIndex > MainTabControl.Items.Count)
+            {
+                MainTabControl.Items.Add(tabItem);
+            }
+            else
+            {
+                MainTabControl.Items.Insert(insertIndex, tabItem);
+            }
+            return tabItem;
+        }
+
+        private ContextMenu CreateCustomTabContextMenu(TabItem tabItem)
+        {
+            var menu = new ContextMenu
+            {
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                Foreground = (Brush)FindResource("MaxTextColor")
+            };
+            var rename = new System.Windows.Controls.MenuItem
+            {
+                Header = "重命名",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            rename.Click += (s, e) => RenameCustomTab(tabItem);
+            var delete = new System.Windows.Controls.MenuItem
+            {
+                Header = "删除",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            delete.Click += (s, e) => DeleteCustomTab(tabItem);
+            menu.Items.Add(rename);
+            menu.Items.Add(delete);
+            return menu;
+        }
+
+        private void CustomTabItem_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            var tabItem = sender as TabItem;
+            if (tabItem == null || tabItem.ContextMenu == null)
+            {
+                return;
+            }
+            tabItem.ContextMenu.PlacementTarget = tabItem;
+            tabItem.ContextMenu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private void SaveTabsConfig()
+        {
+            if (_tabsConfig == null)
+            {
+                _tabsConfig = new ToolBarTabsConfig();
+            }
+            CfgHelpPersonXml.SaveToolBarTabs(_tabsConfig, WebAddress.ToolBarTabsConfig);
+        }
+
+        private string NextCustomTabHeader()
+        {
+            int n = 1;
+            if (_tabsConfig != null && _tabsConfig.Tabs != null)
+            {
+                n = _tabsConfig.Tabs.Count + 1;
+            }
+            return "自定义" + n;
+        }
+
+        private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_suppressTabSelection || MainTabControl == null || AddTabItem == null)
+            {
+                return;
+            }
+            if (!ReferenceEquals(MainTabControl.SelectedItem, AddTabItem))
+            {
+                return;
+            }
+
+            _suppressTabSelection = true;
+            try
+            {
+                CustomToolbarTab tabData = CustomToolbarTab.CreateNew(NextCustomTabHeader());
+                if (_tabsConfig.Tabs == null)
+                {
+                    _tabsConfig.Tabs = new System.Collections.Generic.List<CustomToolbarTab>();
+                }
+                _tabsConfig.Tabs.Add(tabData);
+                SaveTabsConfig();
+
+                int insertIndex = MainTabControl.Items.IndexOf(AddTabItem);
+                TabItem newItem = InsertCustomTabItem(tabData, insertIndex);
+                MainTabControl.SelectedItem = newItem;
+            }
+            finally
+            {
+                _suppressTabSelection = false;
+            }
+        }
+
+        // XAML 资源菜单保留兼容；实际自定义 Tab 使用闭包绑定到 TabItem
+        private void CustomTabRename_Click(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as System.Windows.Controls.MenuItem;
+            var menu = menuItem != null ? menuItem.Parent as ContextMenu : null;
+            var tabItem = menu != null ? menu.PlacementTarget as TabItem : null;
+            RenameCustomTab(tabItem);
+        }
+
+        private void CustomTabDelete_Click(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as System.Windows.Controls.MenuItem;
+            var menu = menuItem != null ? menuItem.Parent as ContextMenu : null;
+            var tabItem = menu != null ? menu.PlacementTarget as TabItem : null;
+            DeleteCustomTab(tabItem);
+        }
+
+        private void RenameCustomTab(TabItem tabItem)
+        {
+            if (tabItem == null)
+            {
+                return;
+            }
+            var tabData = tabItem.Tag as CustomToolbarTab;
+            if (tabData == null)
+            {
+                return;
+            }
+
+            string newName = UiPrompt.PromptText("重命名 Tab", "请输入新名称：", tabData.Header);
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                return;
+            }
+            newName = newName.Trim();
+            tabData.Header = newName;
+            tabItem.Header = newName;
+            SaveTabsConfig();
+        }
+
+        private void DeleteCustomTab(TabItem tabItem)
+        {
+            if (tabItem == null || MainTabControl == null)
+            {
+                return;
+            }
+            var tabData = tabItem.Tag as CustomToolbarTab;
+            if (tabData == null)
+            {
+                return;
+            }
+
+            MessageBoxResult result = System.Windows.MessageBox.Show(
+                "确定删除 Tab「" + tabData.Header + "」及其脚本列表配置？",
+                "删除 Tab",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            if (_tabsConfig != null && _tabsConfig.Tabs != null)
+            {
+                _tabsConfig.Tabs.RemoveAll(t => t != null && t.Id == tabData.Id);
+            }
+            SaveTabsConfig();
+
+            if (tabData.ListIds != null)
+            {
+                foreach (string listId in tabData.ListIds)
+                {
+                    try
+                    {
+                        string path = System.IO.Path.Combine(WebAddress.apppath, listId + ".xml");
+                        if (File.Exists(path))
+                        {
+                            File.Delete(path);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            _suppressTabSelection = true;
+            try
+            {
+                int removeIndex = MainTabControl.Items.IndexOf(tabItem);
+                MainTabControl.Items.Remove(tabItem);
+                if (MainTabControl.Items.Count > 1)
+                {
+                    int selectIndex = Math.Max(0, Math.Min(removeIndex, MainTabControl.Items.Count - 2));
+                    MainTabControl.SelectedIndex = selectIndex;
+                }
+            }
+            finally
+            {
+                _suppressTabSelection = false;
+            }
         }
 
         private void ToolbarsV_Unloaded(object sender, RoutedEventArgs e)

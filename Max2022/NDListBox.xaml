@@ -188,6 +188,7 @@
         </Style>
         <ContextMenu  x:Key="dynamicContextMenu" Opened="dynamicContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
             <MenuItem Header="编辑名字" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GEditItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="设置上下间距" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding SetItemSpacingCommand}"/>
             <MenuItem Header="插入间隔" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding AddMarginCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="复制" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GCopyItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="黏贴" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GPasetItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
@@ -198,14 +199,14 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 " x:Name="MyListBoxExpander">
+        <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0" x:Name="MyListBoxExpander">
             <ListBox x:Name="MyListBox" BorderThickness="0" Background="{StaticResource MaxUiBackgroundColor}"  ItemContainerStyle="{StaticResource listBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
  FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 0 0"
           >
 
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 1 0 1" >
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="{Binding DataContext.ItemRowMargin, RelativeSource={RelativeSource AncestorType=ListBox}}" >
                             <!-- <Ellipse Height="14" Width="14" Fill="{Binding Color}"  VerticalAlignment="Center" Margin="5"/>
                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5" FontSize="16"/>-->
                             <Button x:Name="MyListBoxButton" Content="{Binding Name}" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource BtnInfoStyle}" Width="64" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Button_Click"/>

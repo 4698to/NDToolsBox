@@ -215,6 +215,9 @@
     <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\PersonViewModel.cs">
       <Link>TextSearch\ViewModel\PersonViewModel.cs</Link>
     </Compile>
+    <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\CustomToolbarTab.cs">
+      <Link>TextSearch\ViewModel\CustomToolbarTab.cs</Link>
+    </Compile>
     <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ViewModel\toolbarsViewModle.cs">
       <Link>TextSearch\ViewModel\toolbarsViewModle.cs</Link>
     </Compile>
