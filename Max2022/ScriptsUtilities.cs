@@ -105,7 +105,7 @@ namespace NDToolsBox
         //private static string[] colorTheme_dark = new string[] { "#ffffff", "#60c8f3", "#27e8dd ", "#FF79B123", "#8c96cb", "#bbff00", "#252525", "#444444", "#5a5a5a", "#6d8323" };
         private static string[] colorTheme_dark = new string[] { "#ffffff", "#646464", "#646464", "#646464", "#646464", "#bbff00", "#252525", "#444444", "#5a5a5a", "#6d8323" };
 
-        private static string[] colorTheme_light = new string[] { "#00020f", "#72d6ff", "#27e8dd ", "#FF79B123", "#8c96cb", "#6d83fa", "#a0a0a0", "#bfbfbf", "#eeeeee", "#6d83fa" };
+        private static string[] colorTheme_light = new string[] { "#00020f", "#72d6ff", "#27e8dd", "#FF79B123", "#8c96cb", "#6d83fa", "#a0a0a0", "#bfbfbf", "#eeeeee", "#6d83fa" };
 
         public static string[] color_lib = new string[] {
             "#bdbdbc","#676767","#c35c4d","#f3e068","#4ba062","#4b9f5f","#489dae","#afa0df"
@@ -132,8 +132,8 @@ namespace NDToolsBox
                 }
             }
             catch (Exception ex)
-            { 
-                
+            {
+                print($"GetSeteNames 失败: {ex.Message}");
             }
             return NamedSelSet;
         }
@@ -159,11 +159,21 @@ namespace NDToolsBox
         //导入选择集xml 
         public static void ImportSeleSet(string xmlFile)
         {
+            if (string.IsNullOrEmpty(xmlFile) || xmlFile.IndexOf('"') >= 0)
+            {
+                print($"ImportSeleSet 路径无效: {xmlFile}");
+                return;
+            }
             ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit.load_xml @\"{xmlFile}\"");
         }
         //导出选择集xml
         public static void ExportSeleSet(string xmlFile)
-        { 
+        {
+            if (string.IsNullOrEmpty(xmlFile) || xmlFile.IndexOf('"') >= 0)
+            {
+                print($"ExportSeleSet 路径无效: {xmlFile}");
+                return;
+            }
             ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit.save_xml @\"{xmlFile}\"");
         }
         //导入选择集xml 
@@ -412,7 +422,8 @@ namespace NDToolsBox
                 IINodeTab tp = global.INodeTab.Create();
                 if (global.INamedSelectionSetManager.Instance.GetNamedSelSetList(tp, index))
                 {
-                    if (tp.Count < 1)
+                    // 空选择集仍允许添加节点；仅移除时列表为空则无需处理
+                    if (!is_add && tp.Count < 1)
                     {
                         return;
                     }
@@ -721,9 +732,14 @@ namespace NDToolsBox
             //global.TheListener.EditStream.Flush();
         }
 
+        /// <summary>
+        /// 3ds Max 安装根目录。对应 Max SDK MaxDirectory.MaxSysRootDir（索引 20，2015–2024 一致）。
+        /// </summary>
+        private const int MaxSysRootDirIndex = 20;
+
         public static string GetMaxRoot()
         {
-            return ip.GetDir(20); ;
+            return ip.GetDir(MaxSysRootDirIndex);
         }
 
         public static void DisableAccelerators()

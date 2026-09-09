@@ -97,25 +97,33 @@ namespace NDToolsBox
         /// <returns></returns>
         public static bool CheckConnect(string ipString, int port)
         {
-            bool right = false;
-            System.Net.Sockets.TcpClient tcpClient = new System.Net.Sockets.TcpClient()
-            { SendTimeout = 200 };
-            IPAddress ip = IPAddress.Parse(ipString);
-            try
+            using (System.Net.Sockets.TcpClient tcpClient = new System.Net.Sockets.TcpClient()
+            { SendTimeout = 200 })
             {
-                var result = tcpClient.BeginConnect(ip, port, null, null);
-                var back = result.AsyncWaitHandle.WaitOne(200);
-                right = tcpClient.Connected;
+                try
+                {
+                    IPAddress ip = IPAddress.Parse(ipString);
+                    var result = tcpClient.BeginConnect(ip, port, null, null);
+                    bool connected = result.AsyncWaitHandle.WaitOne(200);
+                    if (connected)
+                    {
+                        try
+                        {
+                            tcpClient.EndConnect(result);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                        return tcpClient.Connected;
+                    }
+                    return false;
+                }
+                catch
+                {
+                    return false;
+                }
             }
-            catch
-            {
-                //LogHelpter.AddLog($"连接服务{ipString}:{port}失败，设置的超时时间{tcpClient.SendTimeout}毫秒");
-                //连接失败
-                return false;
-            }
-            tcpClient.Close();
-            tcpClient.Dispose();
-            return right;
         }
         public static bool ping(string url)
         {

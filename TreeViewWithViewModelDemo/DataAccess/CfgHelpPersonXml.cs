@@ -127,15 +127,17 @@ namespace NDToolsBox
                 {
                     p.RootType = "MaxRoot";
                 }
+                string startup = p.StartupFolder ?? "";
+                string sub = p.SubPath ?? "";
                 if (p.RootType.Equals("MaxRoot"))
                 {
-                    p.Path = Path.Combine(max_root, p.StartupFolder, p.SubPath);
+                    p.Path = Path.Combine(max_root ?? "", startup, sub);
 
 
                 }
                 if (p.RootType.Equals("ApplicationPlugins"))
                 { 
-                    p.Path = Path.Combine(WebAddress.apppath, p.StartupFolder, p.SubPath);
+                    p.Path = Path.Combine(WebAddress.apppath, startup, sub);
 
                 }
                 p.exist = File.Exists(p.Path);

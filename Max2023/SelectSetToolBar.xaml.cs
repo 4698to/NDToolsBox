@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,7 +24,6 @@ namespace NDToolsBox
     {
         private SelectSetViewModel _itemlist;
         private GlobalDelegates.Delegate5 SelSetName_deleg;
-        public Graphics g = Graphics.FromHwnd(IntPtr.Zero);
 
         public filterSettings _filterWidow;
         public SelectSetToolBar()
@@ -50,15 +48,15 @@ namespace NDToolsBox
         {
             base.UpdateLayout();
 
-            if (size.Width > 50/g.DpiX)
+            if (size.Width > 50)
             {
-                base.Width = size.Width + 160d/g.DpiX;
+                base.Width = size.Width + 160d;
             }
             else
             {
-                base.Width = 170d / g.DpiX;
+                base.Width = 170d;
             }
-            base.Height = 40d / g.DpiY;
+            base.Height = 40d;
         }
         public void RegisterNamedSelSet()
         {
@@ -107,11 +105,8 @@ namespace NDToolsBox
             {
                 _itemlist.Items.Add(new SelectSetItem(item.name, item.index, item.color_));
             }
-            System.Windows.Size p = MyListBox.RenderSize;
-            p.Height = MyListBox.RenderSize.Height/g.DpiY;
-            p.Width = MyListBox.RenderSize.Width/g.DpiX;
-            //try_set_widow_size(MyListBox.RenderSize);
-            try_set_widow_size(p);
+            // WPF RenderSize 已是 DIP
+            try_set_widow_size(MyListBox.RenderSize);
 
 
         }

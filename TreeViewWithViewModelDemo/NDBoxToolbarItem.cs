@@ -19,7 +19,11 @@ namespace NDToolsBox
             Action = new NDBoxCuiAction();
             Title = "Test NDBox";
             IsSeparator = false;
-            Image = BitmapFrame.Create(new Uri(ScriptsUtilities.iconUri()));
+            string icon = ScriptsUtilities.iconUri();
+            if (!string.IsNullOrEmpty(icon))
+            {
+                Image = BitmapFrame.Create(new Uri(icon));
+            }
         }
        
     }

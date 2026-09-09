@@ -170,11 +170,11 @@ namespace NDToolsBox
         }
         public string StartupFolder
         {
-            get { return _parent.StartupFolder; }
+            get { return _person != null ? _person.StartupFolder : null; }
         }
         public string SubPath
         {
-            get { return _parent.SubPath; }
+            get { return _person != null ? _person.SubPath : null; }
         }
         #endregion // Person Properties
 

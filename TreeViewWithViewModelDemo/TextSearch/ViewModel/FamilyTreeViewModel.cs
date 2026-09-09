@@ -7,8 +7,8 @@ using System.Windows.Input;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Linq;
-using System.Threading.Tasks;
-using System.Net.Http;
+//using System.Threading.Tasks;
+//using System.Net.Http;
 
 namespace NDToolsBox
 {
@@ -102,6 +102,7 @@ namespace NDToolsBox
             message = rootPerson.message;
 
         }
+        /*
         public async Task downloadVersion()
         {
             HttpClientHandler handler = new HttpClientHandler();
@@ -120,6 +121,7 @@ namespace NDToolsBox
             }
             catch { }
         }
+        */
         
         public string GetMaxUiBackgroundColor
         {
@@ -335,33 +337,29 @@ namespace NDToolsBox
             if (_matchingPeopleEnumerator == null || !_matchingPeopleEnumerator.MoveNext())
                 this.VerifyMatchingPeopleEnumerator();
 
-            //var person = _matchingPeopleEnumerator.Current;
-            var person = _firstGeneration[0];
+            if (_matchingPeopleEnumerator == null)
+            {
+                return;
+            }
+
+            var person = _matchingPeopleEnumerator.Current;
 
             if (person == null)
             {
                 return;
             }
             // Ensure that this person is in view.
-            //父节点展开
             if (person.Parent != null)
             {
-                //person.Parent.IsExpanded = true;
+                person.Parent.IsExpanded = true;
             }
-            //自己展开
-            if (person.IsGrouping)
-            {
-                //person.IsExpanded = true;
-            }
-
-            
-           // person.IsExpanded = true;
-            //person.IsSelected = true;
+            person.IsExpanded = true;
+            person.IsSelected = true;
 
         }
         public void RemoveSearchMatches()
         {
-            if (GoodMatches)
+            if (GoodMatches && _firstGeneration != null && _firstGeneration.Count > 0)
             {
                 if (_firstGeneration[0].NameContainsText(SearchResults))
                     _firstGeneration.RemoveAt(0);
@@ -379,7 +377,7 @@ namespace NDToolsBox
             List<PersonViewModel> matchesPerson = matches.ToList();
             
             //如果还有上次的搜索结果
-            if (GoodMatches)
+            if (GoodMatches && _firstGeneration.Count > 0)
             {
                 searchNode = _firstGeneration[0];
             }

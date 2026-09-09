@@ -11,7 +11,6 @@ using System.Windows.Media.Imaging;
 using UiViewModels.Actions;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Drawing;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 using System.Windows.Controls;
 
@@ -23,7 +22,6 @@ namespace NDToolsBox
         private WindowInteropHelper windowHandle;
         private double height;
         private double width;
-        public Graphics g = Graphics.FromHwnd(IntPtr.Zero);
 
         private string icon;
         public override bool ExecuteAction()
@@ -80,11 +78,8 @@ namespace NDToolsBox
                 dialog.RegisterNamedSelSet();
                
                 dialog.Show();
-                System.Windows.Size p = dialog.MyListBox.RenderSize;
-                p.Height = dialog.MyListBox.RenderSize.Height / g.DpiY;
-                p.Width = dialog.MyListBox.RenderSize.Width / g.DpiX;
-                //try_set_widow_size(MyListBox.RenderSize);
-                dialog.try_set_widow_size(p);
+                // WPF 使用 DIP，RenderSize 无需再除以 GDI DPI
+                dialog.try_set_widow_size(dialog.MyListBox.RenderSize);
                 
                 //dialog.try_set_widow_size(dialog.MyListBox.RenderSize);
             }
@@ -103,8 +98,9 @@ namespace NDToolsBox
         }
         private void try_set_widow_pos()
         {
-            double top_ = 10.0d / g.DpiY;
-            double left_ = 20.0d / g.DpiX;
+            // WPF Window.Top/Left 与 Settings 均为 DIP，勿用 Graphics.Dpi 再换算
+            double top_ = 10.0d;
+            double left_ = 20.0d;
             try
             {
                 top_ = Properties.Settings.Default.Top;
@@ -115,28 +111,18 @@ namespace NDToolsBox
 
             }
 
-            /*if (width > SystemParameters.PrimaryScreenWidth | width <= 50.0d )
+            if (top_ > SystemParameters.PrimaryScreenHeight || top_ < 0)
             {
-                width = 150.0d;
+                top_ = SystemParameters.PrimaryScreenHeight * 0.5d;
             }
-            
-            if (height > SystemParameters.PrimaryScreenHeight | height <= 20.0d)
+            if (left_ > SystemParameters.PrimaryScreenWidth || left_ < 0)
             {
-                height = 50.0d; 
-            }*/
-            if (top_ > SystemParameters.PrimaryScreenHeight | top_ <= 50.0d / g.DpiY)
-            {
-                top_ = SystemParameters.PrimaryScreenHeight * 0.5d / g.DpiY ;
-            }
-            if (left_ > SystemParameters.PrimaryScreenWidth | left_ <= 10.0d / g.DpiX)
-            {
-                left_ = 80.0d / g.DpiX;
+                left_ = 80.0d;
             }
              
-                //dialog.Width = width;
-                dialog.Height = 40d / g.DpiY;
-                dialog.Top = top_/g.DpiY;
-                dialog.Left = left_/g.DpiX;
+                dialog.Height = 40d;
+                dialog.Top = top_;
+                dialog.Left = left_;
             
            
              //dialog.SizeToContent = System.Windows.SizeToContent.WidthAndHeight;

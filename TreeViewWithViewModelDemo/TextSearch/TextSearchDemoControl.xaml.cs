@@ -90,16 +90,29 @@ namespace NDToolsBox
 
             //message = "message";
 
-            //_familyTree.downloadVersion();
-            if (float.Parse(_familyTree.toolsVersion) < _familyTree.remoteVersion)
+            // 启动时远程版本检测/下载已暂时关闭
+            //CheckRemoteVersionAsync();
+            
+        }
+        /*
+        private async void CheckRemoteVersionAsync()
+        {
+            await _familyTree.downloadVersion();
+            float localVersion;
+            if (float.TryParse(_familyTree.toolsVersion, out localVersion)
+                && localVersion < _familyTree.remoteVersion)
             {
                 _familyTree.IsUpdata = true;
             }
-            
         }
+        */
         public void GetToolsList(ref Person rootPerson)
         {
-            int count = int.Parse(config.GetValue("Count", "ToolsList", "0"));
+            int count;
+            if (!int.TryParse(config.GetValue("Count", "ToolsList", "0"), out count))
+            {
+                count = 0;
+            }
             for (int i = 0; i < count; i++)
             {
                 string path = config.GetValue(i.ToString(), "ToolsList",string.Empty);
@@ -115,7 +128,11 @@ namespace NDToolsBox
         }
         public void GetResourcesPath(ref Person p)
         {
-            int pathcount = int.Parse(config.GetValue("Count","Resources",  "0"));
+            int pathcount;
+            if (!int.TryParse(config.GetValue("Count","Resources",  "0"), out pathcount))
+            {
+                pathcount = 0;
+            }
             for (int i = 0; i < pathcount; i++)
             {
                 string path = config.GetValue(i.ToString(), "Resources", string.Empty);
@@ -134,7 +151,8 @@ namespace NDToolsBox
             get
             {
                 string v = config.GetValue("Version", "NDBoxDownload", "0");
-                return float.Parse(v);
+                float result;
+                return float.TryParse(v, out result) ? result : 0f;
             }
             set
             {
@@ -156,9 +174,12 @@ namespace NDToolsBox
         public void TreeView_SelectedItemChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<object> e)
         {
             //https://blog.csdn.net/qq_41569198/article/details/106504976
-            PersonViewModel item = (PersonViewModel)e.NewValue;
-            _familyTree.message = item.message;
-            PersonViewModel item_old = (PersonViewModel)e.OldValue;
+            PersonViewModel item = e.NewValue as PersonViewModel;
+            if (item != null)
+            {
+                _familyTree.message = item.message;
+            }
+            PersonViewModel item_old = e.OldValue as PersonViewModel;
             if (item_old != null && !item_old.Equals(item) )
             {
                 item_old.CommandState = "";
@@ -218,6 +239,7 @@ namespace NDToolsBox
             if (item == null)
             {
                 ScriptsUtilities.print("help_Click");
+                return;
             }
             //打开鼠标提示中的网页链接
             //Process.Start(new ProcessStartInfo(button.ToolTip.ToString()));
@@ -229,9 +251,10 @@ namespace NDToolsBox
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(item.HelpUrl));
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    ScriptsUtilities.print($"打开帮助失败: {ex.Message}");
+                    MessageBox.Show($"无法打开帮助链接:\n{item.HelpUrl}", "帮助", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
             }

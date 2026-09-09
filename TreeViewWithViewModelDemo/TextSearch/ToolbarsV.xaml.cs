@@ -77,6 +77,18 @@ namespace NDToolsBox.TextSearch
 
             ScriptsUtilities.global.RegisterNotification(m_deleg, null, SystemNotificationCode.TimerangeChange);
 
+            this.Unloaded += ToolbarsV_Unloaded;
+
+        }
+
+        private void ToolbarsV_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.Unloaded -= ToolbarsV_Unloaded;
+            if (m_deleg != null)
+            {
+                ScriptsUtilities.global.UnRegisterNotification(m_deleg, null, SystemNotificationCode.TimerangeChange);
+                m_deleg = null;
+            }
         }
 
         private void Test_Delegate5_Callback(IntPtr param0, INotifyInfo param1)

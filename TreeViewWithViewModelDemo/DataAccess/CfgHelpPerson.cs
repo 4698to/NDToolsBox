@@ -21,7 +21,7 @@ namespace NDToolsBox
         {
             if (!p.IsGrouping)
             {
-                p.Path = Path.Combine(max_root, p.StartupFolder, p.SubPath);
+                p.Path = Path.Combine(max_root ?? "", p.StartupFolder ?? "", p.SubPath ?? "");
             }
                 foreach (Person ip in p.Children)
                 {

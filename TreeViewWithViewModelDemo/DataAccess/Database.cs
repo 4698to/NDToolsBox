@@ -223,10 +223,17 @@ namespace NDToolsBox
             XmlNode rootnode = xml.SelectSingleNode("checkResult");
             //tree 根节点
             Person rootParent = NewRootPerson();
-            if (rootnode != null)
+            if (rootnode == null)
             {
-                rootParent.Name = rootnode.Attributes["Version"].Value;
-                rootParent.Path = rootnode.Attributes["Name"].Value;
+                return rootParent;
+            }
+
+            if (rootnode.Attributes != null)
+            {
+                XmlAttribute ver = rootnode.Attributes["Version"];
+                XmlAttribute name = rootnode.Attributes["Name"];
+                if (ver != null) rootParent.Name = ver.Value;
+                if (name != null) rootParent.Path = name.Value;
             }
 
             //遍历根节点的分类节点
@@ -247,14 +254,31 @@ namespace NDToolsBox
         }
         public static void SetPath(ref Person per)
         {
+            if (string.IsNullOrEmpty(per.RootType) || string.IsNullOrEmpty(per.Path))
+            {
+                return;
+            }
+            string relative = per.Path.TrimStart('\\');
             if (per.RootType.Equals("MaxRoot"))
             {
-                per.Path = Path.Combine(rootpath, per.Path.TrimStart('\\'));
+                per.Path = Path.Combine(rootpath ?? "", relative);
             }
-            if (per.RootType.Equals("ApplicationPlugins"))
+            else if (per.RootType.Equals("ApplicationPlugins"))
             {
-                per.Path = Path.Combine(WebAddress.apppath, per.Path.TrimStart('\\'));
+                per.Path = Path.Combine(WebAddress.apppath, relative);
             }
+        }
+        private static string SafeInnerText(XmlNode parent, string childName)
+        {
+            if (parent == null) return "";
+            XmlNode n = parent.SelectSingleNode(childName);
+            return n != null ? (n.InnerText ?? "") : "";
+        }
+        private static string SafeAttr(XmlNode item, string attrName)
+        {
+            if (item == null || item.Attributes == null) return "";
+            XmlAttribute a = item.Attributes[attrName];
+            return a != null ? (a.Value ?? "") : "";
         }
         public static Person NewXmlNodePerson(XmlNode item,ref Person Parent)
         {
@@ -265,7 +289,8 @@ namespace NDToolsBox
             //分类节点
             if (item.Name.Equals("class"))
             {
-                Node.Name = item.Attributes.GetNamedItem("Name").Value;
+                XmlNode nameAttr = item.Attributes != null ? item.Attributes.GetNamedItem("Name") : null;
+                Node.Name = nameAttr != null ? nameAttr.Value : "";
                 Node.HelpUrl = "";
                 Node.Path = "";
             }
@@ -276,9 +301,9 @@ namespace NDToolsBox
                 if (id_node != null)
                     Node.Name = id_node.InnerText;
                
-                Node.message = item.SelectSingleNode("about").InnerText;
+                Node.message = SafeInnerText(item, "about");
 
-                string url = item.SelectSingleNode("url").InnerText;
+                string url = SafeInnerText(item, "url");
                 if (url.Length > 3)
                 {
                     Node.HelpUrl = url;
@@ -288,10 +313,10 @@ namespace NDToolsBox
                     Node.HelpUrl = "";
                 }
 
-                Node.RootType = item.Attributes["rootpath"].Value;
-                Node.ExtensionType = item.Attributes["ext"].Value;
+                Node.RootType = SafeAttr(item, "rootpath");
+                Node.ExtensionType = SafeAttr(item, "ext");
 
-                Node.Path = item.SelectSingleNode("path").InnerText;
+                Node.Path = SafeInnerText(item, "path");
                 SetPath(ref Node);
 
                 Node.IsGrouping = false;

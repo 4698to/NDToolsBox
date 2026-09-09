@@ -24,9 +24,14 @@ namespace NDToolsBox
             global.TheListener.EditStream.Flush();
         }
         
+        /// <summary>
+        /// 3ds Max 安装根目录。对应 Max SDK MaxDirectory.MaxSysRootDir（索引 20）。
+        /// </summary>
+        private const int MaxSysRootDirIndex = 20;
+
         public static string GetMaxRoot()
         {
-            return ip.GetDir(20);;
+            return ip.GetDir(MaxSysRootDirIndex);
         }
         
         public static void DisableAccelerators()
