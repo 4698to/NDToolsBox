@@ -16,6 +16,26 @@
 
 还原 NuGet 包后编译目标 Max 版本工程。
 
+## ToolbarsV 用户配置
+
+侧边工具栏（`ToolbarsV`）的用户数据写在插件安装目录，代码里对应 `WebAddress.apppath`：
+
+`C:\ProgramData\Autodesk\ApplicationPlugins\NDToolsBox`
+
+| 文件 | 内容 |
+|------|------|
+| `ToolBar.xml` | 「动画」页按钮列表（常用工具、时间段等） |
+| `ToolBarTabs.xml` | 用户自定义 Tab 元数据：`Id`、标题、三列列表的 `ListId` |
+| `{控件名}.xml` | 「绑定」页三列列表，对应 XAML 中 `NDListBox` 的 `Name`：`MyListBox_Rig.xml`、`MyListBox_Rig_2.xml`、`MyListBox_Rig_3.xml` |
+| `CustomTab_{Id}_{1\|2\|3}.xml` | 每个自定义 Tab 的三列脚本按钮及上下间距（`ItemMarginTop` / `ItemMarginBottom`） |
+
+说明：
+
+- 点击左侧 `+` 会新建 Tab，并写入 `ToolBarTabs.xml`；各列首次保存或改动后生成对应 `CustomTab_*.xml`。
+- 自定义 Tab 右键「重命名」只改 `ToolBarTabs.xml` 中的标题；「删除」会从该文件移除条目，并删除该 Tab 下三列 xml。
+- 列表内按钮改名、增删、复制粘贴、设置上下间距，都保存在各自列表 xml 中，不写入 `ToolBarTabs.xml`。
+- 备份或迁移用户工具条时，复制上述目录中的这些 xml 即可；删除自定义 Tab 的 xml 而不改 `ToolBarTabs.xml` 时，下次启动会按空列表重建该列。
+
 ## 相关
 
 - 资源打包工具：`NDToolsResourcesPack`
