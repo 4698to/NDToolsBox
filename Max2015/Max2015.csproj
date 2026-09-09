@@ -293,7 +293,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>Copy "$(TargetDir)$(TargetName).dll" "D:\Program Files\Autodesk\3ds Max 2015\bin\assemblies\$(TargetName).dll"
-Copy "$(TargetDir)$(TargetName).dll" "G:\Git_NDBox\天晴动作组脚本工具v4.47For2015\NDBox\2015\assemblies\$(TargetName).dll"</PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
