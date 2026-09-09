@@ -83,9 +83,13 @@ namespace NDToolsBox
 
         private static bool IsMissingMenuItem(IIMenuItem mi)
         {
-            // CUI 持久化后 ActionTable Id 变化，项会显示为 "Missing: <ActionId>"（如 4698 / 1）
-            return mi != null && mi.Title != null
-                && mi.Title.StartsWith("Missing:", StringComparison.OrdinalIgnoreCase);
+            if (mi == null || mi.Title == null)
+                return false;
+
+            // CUI 持久化后 ActionTable Id 变化：英文 Missing: / 中文 缺少:
+            return mi.Title.StartsWith("Missing:", StringComparison.OrdinalIgnoreCase)
+                || mi.Title.StartsWith("缺少:", StringComparison.OrdinalIgnoreCase)
+                || mi.Title.StartsWith("缺少：", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool MenuHasBoundAction(IIMenu ndMenu, string actionButtonText)
@@ -115,8 +119,14 @@ namespace NDToolsBox
                 return;
             for (int i = ndMenu.NumItems - 1; i >= 0; i--)
             {
-                if (IsMissingMenuItem(ndMenu.GetItem(i)))
-                    ndMenu.RemoveItem(i);
+                IIMenuItem mi = ndMenu.GetItem(i);
+                if (!IsMissingMenuItem(mi))
+                    continue;
+                ndMenu.RemoveItem(i);
+                if (mi != null)
+                {
+                    try { ScriptsUtilities.global.ReleaseIMenuItem(mi); } catch { }
+                }
             }
         }
 
@@ -216,6 +226,8 @@ namespace NDToolsBox
             {
                 IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
                 IIMenu existing = menuManager.FindMenu("NDBox");
+                // 先清无效项，再判断是否已齐（避免中文 缺少: 被当成有效项而跳过补装）
+                RemoveMissingMenuItems(existing);
                 // 选项已齐、无 Missing、且已在主菜单栏：不拆不建
                 if (IsNdBoxMenuComplete(existing) && IsNdBoxOnMainMenuBar(menuManager, existing))
                 {

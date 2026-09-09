@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Threading;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Linq;
@@ -72,6 +73,8 @@ namespace NDToolsBox
         public float remoteVersion=0;
         private bool _isupdata;
         private bool GoodMatches;
+        private DispatcherTimer _searchDebounceTimer;
+        private const int SearchDebounceMs = 300;
         #endregion // Data
 
         #region Constructor
@@ -313,10 +316,11 @@ namespace NDToolsBox
                 if (value == _searchText)
                     return;
 
-                _searchText = value;
+                _searchText = value ?? string.Empty;
 
                 _matchingPeopleEnumerator = null;
                 this.OnPropertyChanged("SearchText");
+                this.ScheduleLiveSearch();
             }
         }
 
@@ -326,86 +330,154 @@ namespace NDToolsBox
 
         #region Search Logic
 
+        void EnsureSearchDebounceTimer()
+        {
+            if (_searchDebounceTimer != null)
+            {
+                return;
+            }
+            _searchDebounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(SearchDebounceMs)
+            };
+            _searchDebounceTimer.Tick += (s, e) =>
+            {
+                _searchDebounceTimer.Stop();
+                ApplyLiveSearch();
+            };
+        }
+
+        void CancelLiveSearchDebounce()
+        {
+            if (_searchDebounceTimer != null && _searchDebounceTimer.IsEnabled)
+            {
+                _searchDebounceTimer.Stop();
+            }
+        }
+
+        /// <summary>
+        /// 输入变化后 300ms 防抖再搜索；清空则立即恢复。
+        /// </summary>
+        void ScheduleLiveSearch()
+        {
+            if (string.IsNullOrEmpty(_searchText))
+            {
+                CancelLiveSearchDebounce();
+                RemoveSearchMatches();
+                return;
+            }
+
+            EnsureSearchDebounceTimer();
+            _searchDebounceTimer.Stop();
+            _searchDebounceTimer.Start();
+        }
+
+        /// <summary>
+        /// 输入变化时即时搜索并展开结果。
+        /// </summary>
+        void ApplyLiveSearch()
+        {
+            if (string.IsNullOrEmpty(_searchText))
+            {
+                RemoveSearchMatches();
+                return;
+            }
+            RebuildSearchResults(selectFirst: true);
+        }
+
+        /// <summary>
+        /// 搜索按钮 / Enter：刷新或保持搜索结果展开。
+        /// </summary>
         void PerformSearch()
         {
-            if (_searchText.Length < 1)
+            CancelLiveSearchDebounce();
+
+            if (string.IsNullOrEmpty(_searchText))
             {
                 RemoveSearchMatches();
                 return;
             }
 
-            if (_matchingPeopleEnumerator == null || !_matchingPeopleEnumerator.MoveNext())
-                this.VerifyMatchingPeopleEnumerator();
-
             if (_matchingPeopleEnumerator == null)
             {
+                RebuildSearchResults(selectFirst: true);
                 return;
             }
 
-            var person = _matchingPeopleEnumerator.Current;
-
-            if (person == null)
+            if (!_matchingPeopleEnumerator.MoveNext())
             {
+                RebuildSearchResults(selectFirst: true);
                 return;
             }
-            // Ensure that this person is in view.
-            if (person.Parent != null)
-            {
-                person.Parent.IsExpanded = true;
-            }
-            person.IsExpanded = true;
-            person.IsSelected = true;
 
+            if (GoodMatches && _firstGeneration != null && _firstGeneration.Count > 0)
+            {
+                _firstGeneration[0].IsExpanded = true;
+            }
         }
+
+        void RebuildSearchResults(bool selectFirst)
+        {
+            List<PersonViewModel> matchesPerson = this.FindMatches(_searchText, _rootPerson).ToList();
+
+            PersonViewModel searchNode;
+            if (GoodMatches && _firstGeneration != null && _firstGeneration.Count > 0
+                && _firstGeneration[0].NameContainsText(SearchResults))
+            {
+                searchNode = _firstGeneration[0];
+            }
+            else
+            {
+                Person mr = new Person();
+                mr.Name = SearchResults;
+                mr.IsGrouping = true;
+                mr.HelpUrl = "";
+                mr.Path = "";
+                searchNode = new PersonViewModel(mr);
+                if (_firstGeneration == null)
+                {
+                    _firstGeneration = new ObservableCollection<PersonViewModel>();
+                }
+                _firstGeneration.Insert(0, searchNode);
+            }
+
+            // 先收起再替换子节点，避免 TreeView 在展开状态下换 Children 崩溃
+            searchNode.IsExpanded = false;
+            searchNode.Name = $"{SearchResults} ({matchesPerson.Count})";
+            searchNode.Children = new ObservableCollection<PersonViewModel>(matchesPerson);
+            GoodMatches = true;
+
+            _matchingPeopleEnumerator = matchesPerson.GetEnumerator();
+
+            if (matchesPerson.Count == 0)
+            {
+                message = "未找到匹配项";
+                return;
+            }
+
+            // 布局完成后再展开搜索结果节点
+            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!GoodMatches || searchNode == null)
+                {
+                    return;
+                }
+                searchNode.IsExpanded = true;
+            }), DispatcherPriority.Background);
+        }
+
         public void RemoveSearchMatches()
         {
             if (GoodMatches && _firstGeneration != null && _firstGeneration.Count > 0)
             {
                 if (_firstGeneration[0].NameContainsText(SearchResults))
+                {
+                    _firstGeneration[0].IsExpanded = false;
                     _firstGeneration.RemoveAt(0);
+                }
                 GoodMatches = false;
             }
-        }
-        void VerifyMatchingPeopleEnumerator()
-        {
-            PersonViewModel searchNode;
-            
-            var matches = this.FindMatches(_searchText, _rootPerson);
-            //Console.WriteLine("VerifyMatchingPeopleEnumerator " + _searchText);
-            _matchingPeopleEnumerator = matches.GetEnumerator();
-
-            List<PersonViewModel> matchesPerson = matches.ToList();
-            
-            //如果还有上次的搜索结果
-            if (GoodMatches && _firstGeneration.Count > 0)
-            {
-                searchNode = _firstGeneration[0];
-            }
-            else { 
-                //搜索结果
-                Person mr = new Person();
-                mr.Name = SearchResults;
-                mr.IsGrouping = true;
-                
-                mr.HelpUrl = "";
-                mr.Path = "";
-                searchNode = new PersonViewModel(mr);
-                _firstGeneration.Insert(0, searchNode);
-            }
-
-            searchNode.Name = $"{SearchResults} ({matchesPerson.Count})";
-            searchNode.Children = new ObservableCollection<PersonViewModel>(matchesPerson);
-            GoodMatches = true;
-
-            if (!_matchingPeopleEnumerator.MoveNext())
-            {
-                System.Windows.MessageBox.Show(
-                    "No matching names were found.",
-                    "Try Again",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information
-                    );
-            }
+            _matchingPeopleEnumerator = null;
         }
 
         IEnumerable<PersonViewModel> FindMatches(string searchText, PersonViewModel person)

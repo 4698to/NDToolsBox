@@ -365,12 +365,13 @@ namespace NDToolsBox
             TreeViewItem tvi = e.OriginalSource as TreeViewItem;
             if (tvi == null || e.Handled) return;
 
-            if (((PersonViewModel)tvi.Header).IsGrouping)
-            {
-                tvi.IsExpanded = !tvi.IsExpanded;
-                tvi.IsSelected = false;
-                e.Handled = true;
-            }
+            var vm = tvi.DataContext as PersonViewModel;
+            if (vm == null || !vm.IsGrouping) return;
+
+            // 仅响应用户点击分组；避免与代码侧自动展开互相打架
+            tvi.IsExpanded = !tvi.IsExpanded;
+            tvi.IsSelected = false;
+            e.Handled = true;
         }
 
         private void TreeView_Drop(object sender, DragEventArgs e)

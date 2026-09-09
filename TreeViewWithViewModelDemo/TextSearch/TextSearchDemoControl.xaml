@@ -327,6 +327,7 @@
             <Setter Property="Padding" Value="1,0,0,0" />
             <Setter Property="Foreground" Value="{StaticResource MaxTextColor}" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource TreeViewItemFocusVisual}" />
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TreeViewItem}">
@@ -477,15 +478,15 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
-                        <ColumnDefinition Width="30"/><!--搜索按钮列-->
+                        <!--<ColumnDefinition Width="30"/>--><!--搜索按钮列-->
                     </Grid.ColumnDefinitions>
                     <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="2 2 2 2" CornerRadius="3" Background="{StaticResource ScriptTreeBackGroundColor}" ></Border>
                     <TextBox x:Name="searchTextBox" Grid.Row="0" Grid.Column="0" TextChanged="searchTextBox_TextChanged" KeyDown="searchTextBox_KeyDown" GotKeyboardFocus="searchTextBox_GotKeyboardFocus" LostKeyboardFocus="searchTextBox_LostKeyboardFocus" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Height="25" Background="Transparent" CaretBrush="{StaticResource MaxTextColor}" Foreground="{StaticResource MaxTextColor}"  Margin="2 6 2 1" BorderThickness="0" VerticalAlignment="Center" />
                     <!--<TextBlock x:Name="placeholder" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Background="#F2F4FF" Panel.ZIndex="-1" Height="30" Margin="0,0,0,4"/>-->
                     <Button x:Name="textclear" Grid.Row="0" Grid.Column="0" Click="textclear_Click" Style="{StaticResource clearbutton}" ToolTip="清空搜索" Margin="0 0 4 0"/>
-                    
-                        <!--搜索按钮-->
-                    <Button Command="{Binding SearchCommand}" Click="Button_Click" Content="&#xe63f;" FontFamily="{StaticResource IconFont}" FontSize="22" Style="{StaticResource testButton}" Grid.Row="0" Grid.Column="1"/>
+
+                    <!--搜索按钮-->
+                    <!--<Button Command="{Binding SearchCommand}" Click="Button_Click" Content="&#xe63f;" FontFamily="{StaticResource IconFont}" FontSize="22" Style="{StaticResource testButton}" Grid.Row="0" Grid.Column="1"/>-->
 
                 </Grid>
             </Grid>
