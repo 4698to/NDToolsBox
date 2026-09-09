@@ -25,21 +25,60 @@ namespace NDToolsBox
         GlobalDelegates.Delegate5 m_SystemStartupDelegate;
         GlobalDelegates.Delegate5 m_SystemStartupDelegate_2015;
 
+        // 菜单是否已完成首次安装（避免 File>New / 主题切换触发的 PostNew 反复拆建菜单）
+        private bool _menusInstalled;
+
         private void MenuSystemStartupHandler(IntPtr objPtr, INotifyInfo infoPtr)
         {
-            InstallMenus();
+            // 参考 BsKeyTools：UI 重载期间操作菜单会导致低版本 Max 闪退
+            TryInstallMenusOnce();
         }
 
         private void MenuSystemStartupHandler_2015(IntPtr param0, IntPtr param1) 
         {
             ScriptsUtilities.print("MenuSystemStartupHandler_2015 - " );
+            TryInstallMenusOnce();
+        }
 
-            InstallMenus();
+        /// <summary>
+        /// 仅在 NDBox 菜单尚不存在时创建；已存在则跳过，防止切换颜色主题等 UI 重载时崩溃。
+        /// </summary>
+        private void TryInstallMenusOnce()
+        {
+            try
+            {
+                IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
+                // 菜单已在：不拆不建（主题切换 / 反复 PostNew 时的关键防护）
+                if (menuManager.FindMenu("NDBox") != null)
+                {
+                    _menusInstalled = true;
+                    return;
+                }
+                InstallMenus();
+                _menusInstalled = true;
+            }
+            catch (Exception ex)
+            {
+                ScriptsUtilities.print($"TryInstallMenusOnce: {ex.Message}");
+            }
         }
         public override void Stop()
         {
             try
             {
+#if M2015 || M2016
+                if (m_SystemStartupDelegate_2015 != null)
+                {
+                    ScriptsUtilities.global.UnRegisterNotification(m_SystemStartupDelegate_2015, null, SystemNotificationCode.SystemPostNew);
+                    m_SystemStartupDelegate_2015 = null;
+                }
+#else
+                if (m_SystemStartupDelegate != null)
+                {
+                    ScriptsUtilities.global.UnRegisterNotification(m_SystemStartupDelegate, null, SystemNotificationCode.SystemPostNew);
+                    m_SystemStartupDelegate = null;
+                }
+#endif
 
                 if (actionTable != null)
                 {
@@ -56,6 +95,7 @@ namespace NDToolsBox
                     menu = null;
                     menuItem = null;
                 }
+                _menusInstalled = false;
             }
             catch { 
             }
@@ -143,15 +183,11 @@ namespace NDToolsBox
         {
             IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
 
-
-            // Set up menu
+            // 与 InstallMenus 相同：已存在则跳过，避免 UI 重载期间拆建菜单
             menu = menuManager.FindMenu("NDBox");
-            // 如果已经有了，就移除掉
             if (menu != null)
             {
-                menuManager.UnRegisterMenu(menu);
-                ScriptsUtilities.global.ReleaseIMenu(menu);
-                menu = null;
+                return;
             }
             // Main menu
             menu = ScriptsUtilities.global.IMenu;
@@ -190,16 +226,14 @@ namespace NDToolsBox
         {
             IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
 
-            // Set up menu
+            // 修复（对齐 BsKeyTools b01c92f）：
+            // 切换 Max 颜色主题时会重载 UI；此时若 UnRegister/重建菜单，低版本易闪退。
+            // 菜单已存在则直接返回，不再拆除重建。
             menu = menuManager.FindMenu("NDBox");
-            // 如果已经有了，就移除掉
             if (menu != null)
             {
-                menuManager.UnRegisterMenu(menu);
-                ScriptsUtilities.global.ReleaseIMenu(menu);
-                menu = null;
+                return;
             }
-           
 
             // Main menu
             menu = ScriptsUtilities.global.IMenu;
@@ -221,19 +255,29 @@ namespace NDToolsBox
                 ScriptsUtilities.print($"No find -> NDBox-Dock IActionItem");
             }
 
-            //盒子和选择集工具 两个不停靠工具的菜单 
+            //盒子和选择集工具 两个不停靠工具的菜单
+            // M2015-M2020: [0]=NDBox Float, [1]=SelectSet；M2021+: 仅 [0]=SelectSet
             if (actionTable != null && actionTable.Count > 0)
             {
+#if M2015 || M2016 || M2017 || M2018 || M2019 || M2020
                 menuItemNDBoxFloat = ScriptsUtilities.global.IMenuItem;
                 menuItemNDBoxFloat.Title = "&Open NDBox-Float";
                 menuItemNDBoxFloat.ActionItem = actionTable[0];
                 menu.AddItem(menuItemNDBoxFloat, -1);
 
+                if (actionTable.Count > 1)
+                {
+                    menuItemNDBoxSelectSetToolsBar = ScriptsUtilities.global.IMenuItem;
+                    menuItemNDBoxSelectSetToolsBar.Title = "&Open NameSel-Float";
+                    menuItemNDBoxSelectSetToolsBar.ActionItem = actionTable[1];
+                    menu.AddItem(menuItemNDBoxSelectSetToolsBar, -1);
+                }
+#else
                 menuItemNDBoxSelectSetToolsBar = ScriptsUtilities.global.IMenuItem;
                 menuItemNDBoxSelectSetToolsBar.Title = "&Open NameSel-Float";
-                menuItemNDBoxSelectSetToolsBar.ActionItem = actionTable[1];
+                menuItemNDBoxSelectSetToolsBar.ActionItem = actionTable[0];
                 menu.AddItem(menuItemNDBoxSelectSetToolsBar, -1);
-
+#endif
             }
             IActionItem baritem = GetActionItem("侧边工具栏", "A-NDTools-Dock");
             if (baritem != null)
