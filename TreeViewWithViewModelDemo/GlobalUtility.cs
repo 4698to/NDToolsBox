@@ -4,20 +4,69 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Max;
+#if !(M2025 || M2026)
 using Autodesk.Max.IQuadMenuContext;
+#endif
+#if M2025 || M2026
+using Autodesk.Max.MAXScript;
+using UiViewModels.Actions;
+#endif
 using Autodesk.Max.Plugins;
 using ManagedServices;
 
 namespace NDToolsBox
 {
+#if M2025 || M2026
+    /// <summary>
+    /// Max 2025+ 移除了 ActionTable.Create；借助 CuiActionCommandAdapter 拿到 Max 分配的 ActionTable，
+    /// 再删掉占位 Action，供 GUP 挂载选择集等浮动工具。
+    /// </summary>
+    public class NdBoxDummyCommandAdapter : CuiActionCommandAdapter
+    {
+        public const string DummyActionTitle = "NDBoxDummyAction";
+        public override string InternalActionText => DummyActionTitle;
+        public override string InternalCategory => "A-NDTools-Float";
+        public override string ActionText => InternalActionText;
+        public override string Category => InternalCategory;
+
+        public override void Execute(object parameter)
+        {
+            ScriptsUtilities.global.COREInterface.DisplayTempPrompt("NDBox Dummy Action", 10);
+        }
+
+        public static IActionTable GetDummyActionTable()
+        {
+            IIActionManager actionManager = ScriptsUtilities.ip4.ActionManager;
+            for (int actionTableIndex = 0; actionTableIndex < actionManager.NumActionTables; ++actionTableIndex)
+            {
+                IActionTable theTable = actionManager.GetTable(actionTableIndex);
+                if (theTable == null)
+                    continue;
+                for (int i = 0; i < theTable.Count; ++i)
+                {
+                    IActionItem action = theTable[i];
+                    if (action?.DescriptionText == DummyActionTitle || action?.ButtonText == DummyActionTitle)
+                    {
+                        theTable.DeleteOperation(action);
+                        return theTable;
+                    }
+                }
+            }
+            return null;
+        }
+    }
+#endif
+
     class GlobalUtility : GUP
     {
+#if !(M2025 || M2026)
         IIMenu menu;
         IIMenuItem menuItem;
         IIMenuItem menuItemNDBoxFloat;
         IIMenuItem menuItemNDBoxDock;
         IIMenuItem menuItemNDBoxToolsBar;
         IIMenuItem menuItemNDBoxSelectSetToolsBar;
+#endif
         uint idActionTable = 0;
         IActionTable actionTable;//选择集工具的
         IActionTable actionTable_ANDTools;
@@ -33,6 +82,13 @@ namespace NDToolsBox
         private const string ActionTextFloat = "天晴盒子";
         private const string ActionTextFloatDockAlt = "天晴盒子-Dock";
         private const string ActionTextToolsBar = "侧边工具栏";
+
+        // Max 2025+ Cui 菜单固定 GUID（勿每次 genGUID，否则用户自定义会失效）
+        private const string NdBoxMenuGuid = "7C3E9B2A-1F54-4D8E-9A6C-2B8D4E5F6A70";
+        private const string NdBoxSelectSetActionGuid = "8D4F0C3B-2A65-4E9F-8B7D-3C9E5F6A7B81";
+        private const string NdBoxDockActionGuid = "9E5A1D4C-3B76-4F0A-9C8E-4D0F6A7B8C92";
+        private const string NdBoxToolsBarActionGuid = "AF6B2E5D-4C87-401B-AD9F-5E1A7B8C9D03";
+        private const string HelpMenuGuid = "cee8f758-2199-411b-81e7-d3ff4a80d143";
 
         private void MenuSystemStartupHandler(IntPtr objPtr, INotifyInfo infoPtr)
         {
@@ -63,6 +119,7 @@ namespace NDToolsBox
         }
 #endif
 
+#if !(M2025 || M2026)
         private static bool IsNdBoxOnMainMenuBar(IIMenuManager menuManager, IIMenu ndMenu)
         {
             if (menuManager == null || ndMenu == null || menuManager.MainMenuBar == null)
@@ -129,6 +186,7 @@ namespace NDToolsBox
                 }
             }
         }
+#endif
 
         /// <summary>
         /// 静默查找 Action，供菜单补齐反复调用（避免刷屏 Listener）。
@@ -167,6 +225,7 @@ namespace NDToolsBox
                 ?? FindActionItem(ActionTextToolsBar, "A-NDTools");
         }
 
+#if !(M2025 || M2026)
         private static void AddMenuAction(IIMenu ndMenu, IActionItem action, string title, int pos)
         {
             if (ndMenu == null || action == null || MenuHasBoundAction(ndMenu, action.ButtonText))
@@ -216,6 +275,7 @@ namespace NDToolsBox
 
             return true;
         }
+#endif
 
         /// <summary>
         /// 菜单未齐则清 Missing 并补装；已齐则跳过，防止切换颜色主题等 UI 重载时崩溃。
@@ -224,6 +284,12 @@ namespace NDToolsBox
         {
             try
             {
+#if M2025 || M2026
+                if (_menusInstalled)
+                    return;
+                InstallMenus();
+                _menusInstalled = true;
+#else
                 IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
                 IIMenu existing = menuManager.FindMenu("NDBox");
                 // 先清无效项，再判断是否已齐（避免中文 缺少: 被当成有效项而跳过补装）
@@ -239,6 +305,7 @@ namespace NDToolsBox
                 existing = menuManager.FindMenu("NDBox");
                 _menusInstalled = IsNdBoxMenuComplete(existing) && IsNdBoxOnMainMenuBar(menuManager, existing);
                 ScriptsUtilities.print($"TryInstallMenusOnce: installed={_menusInstalled}");
+#endif
             }
             catch (Exception ex)
             {
@@ -272,6 +339,7 @@ namespace NDToolsBox
                 {
                     ScriptsUtilities.global.COREInterface.ActionManager.DeactivateActionTable(actionCallback, idActionTable);
                 }
+#if !(M2025 || M2026)
                 // Clean up menu
                 if (menu != null)
                 {
@@ -283,6 +351,7 @@ namespace NDToolsBox
                     menu = null;
                     menuItem = null;
                 }
+#endif
                 _menusInstalled = false;
             }
             catch { 
@@ -332,9 +401,17 @@ namespace NDToolsBox
                 idActionTable = (uint)actionManager.NumActionTables;
                 string actionTableName = "A-NDTools-Float";
                 //string actionTableName = "A-NDTools";
-                
 
-#if M2022 || M2023 || M2024
+#if M2025 || M2026
+                // Max 2025+ 无 ActionTable.Create，复用 CuiActionCommandAdapter 分配的表
+                actionTable = NdBoxDummyCommandAdapter.GetDummyActionTable();
+                if (actionTable == null)
+                {
+                    ScriptsUtilities.print("GUP.Start: DummyActionTable not found yet");
+                    return 0;
+                }
+                idActionTable = actionTable.Id_;
+#elif M2022 || M2023 || M2024
                 actionTable = ScriptsUtilities.global.ActionTable.Create(idActionTable, 0, actionTableName);
 #else
                 actionTable = ScriptsUtilities.global.ActionTable.Create(idActionTable, 0, ref actionTableName);
@@ -367,6 +444,8 @@ namespace NDToolsBox
                 return 0;
             }
         }
+
+#if !(M2025 || M2026)
         private void AddMenus()
         {
             IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
@@ -408,8 +487,13 @@ namespace NDToolsBox
             //ScriptsUtilities.ip4.MenuManager.UpdateMenuBar();
             ScriptsUtilities.global.COREInterface.MenuManager.UpdateMenuBar();
         }
+#endif
+
         private void InstallMenus()
         {
+#if M2025 || M2026
+            InstallMenusCui2025();
+#else
             IIMenuManager menuManager = ScriptsUtilities.ip4.MenuManager;
 
             // 修复（对齐 BsKeyTools b01c92f）：
@@ -447,16 +531,6 @@ namespace NDToolsBox
                 AddMenuAction(menu, FindToolsBarActionItem(), null, -1);
             }
 
-            //这种需要停靠外框
-            /*IActionItem selectsetBar = GetActionItem("SelectSet-Dock");
-            if (selectsetBar != null)
-            {
-                menuItemNDBoxSelectSetToolsBar = ScriptsUtilities.global.IMenuItem;
-                menuItemNDBoxSelectSetToolsBar.Title = "&Open SelectSetToolsBar";
-                menuItemNDBoxSelectSetToolsBar.ActionItem = selectsetBar;
-                menu.AddItem(menuItemNDBoxSelectSetToolsBar, -1);
-            }*/
-
             // 菜单壳可能已在 CUI 中，但未挂到主菜单栏 → 仍要 AddItem
             if (createdNew || !IsNdBoxOnMainMenuBar(menuManager, menu))
             {
@@ -468,6 +542,89 @@ namespace NDToolsBox
             //ScriptsUtilities.ip4.MenuManager.UpdateMenuBar();
             ScriptsUtilities.global.COREInterface.MenuManager.UpdateMenuBar();
             ScriptsUtilities.print($"InstallMenus done, NumItems={menu.NumItems}, onBar={IsNdBoxOnMainMenuBar(menuManager, menu)}");
+#endif
         }
+
+#if M2025 || M2026
+        /// <summary>
+        /// Max 2025+ 旧 IIMenu API 已移除；通过 #cuiRegisterMenus + CreateAction 挂菜单。
+        /// CreateAction 的第三参为 ActionItem.Id_ 的字符串形式。
+        /// </summary>
+        private void InstallMenusCui2025()
+        {
+            uint floatTableId = idActionTable;
+            if (actionTable != null)
+            {
+                try { floatTableId = actionTable.Id_; } catch { }
+            }
+
+            int selectSetActionId = 1;
+            if (actionTable != null && actionTable.Count > 0)
+            {
+                try { selectSetActionId = actionTable[0].Id_; } catch { }
+            }
+
+            StringBuilder createActions = new StringBuilder();
+            createActions.AppendLine($"        ndMenu.CreateAction \"{NdBoxSelectSetActionGuid}\" {floatTableId} \"{selectSetActionId}\" title:\"选择集工具条\"");
+
+            AppendCuiActionIfFound(createActions, FindDockActionItem(), NdBoxDockActionGuid, "天晴盒子");
+            AppendCuiActionIfFound(createActions, FindToolsBarActionItem(), NdBoxToolsBarActionGuid, ActionTextToolsBar);
+
+            string script =
+@"(
+    function NDBox_CuiRegisterMenus =
+    (
+        local menuMgr = callbacks.notificationParam()
+        local mainMenuBar = menuMgr.mainMenuBar
+        local ndMenu = mainMenuBar.CreateSubMenu """ + NdBoxMenuGuid + @""" ""NDBox"" beforeId:""" + HelpMenuGuid + @"""
+" + createActions + @"
+    )
+    callbacks.removeScripts id:#NDBoxMenus
+    callbacks.addScript #cuiRegisterMenus NDBox_CuiRegisterMenus id:#NDBoxMenus
+    (
+        local menuMgr = maxops.GetICuiMenuMgr()
+        menuMgr.LoadConfiguration (menuMgr.GetCurrentConfiguration())
+    )
+)";
+
+            try
+            {
+                bool ok = ScriptsUtilities.global.ExecuteMAXScriptScript(script, Autodesk.Max.MAXScript.ScriptSource.NotSpecified, true, null, true);
+                ScriptsUtilities.print($"InstallMenusCui2025: ExecuteMAXScriptScript={(ok ? "OK" : "FAIL")}");
+            }
+            catch (Exception ex)
+            {
+                ScriptsUtilities.print($"InstallMenusCui2025: {ex.Message}");
+            }
+        }
+
+        private static void AppendCuiActionIfFound(StringBuilder sb, IActionItem action, string itemGuid, string title)
+        {
+            if (action == null)
+                return;
+            try
+            {
+                // 通过 ButtonText 回查所属 ActionTable，取其 Id_
+                IIActionManager actionManager = ScriptsUtilities.ip4.ActionManager;
+                for (int i = 0; i < actionManager.NumActionTables; i++)
+                {
+                    IActionTable tb = actionManager.GetTable(i);
+                    if (tb == null)
+                        continue;
+                    for (int o = 0; o < tb.Count; o++)
+                    {
+                        if (!object.ReferenceEquals(tb[o], action) && !(action.ButtonText != null && action.ButtonText.Equals(tb[o].ButtonText)))
+                            continue;
+                        sb.AppendLine($"        ndMenu.CreateAction \"{itemGuid}\" {tb.Id_} \"{tb[o].Id_}\" title:\"{title}\"");
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ScriptsUtilities.print($"AppendCuiActionIfFound({title}): {ex.Message}");
+            }
+        }
+#endif
     }
 }

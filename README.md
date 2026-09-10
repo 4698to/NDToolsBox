@@ -7,14 +7,15 @@
 ## 环境
 
 - Visual Studio 2017+（建议 2022）
-- .NET Framework（各 Max 版本工程见对应 `Max20xx` 目录）
+- .NET Framework（Max 2015–2025 工程）
+- **Max 2026** 工程为 SDK 风格，目标框架 `net8.0-windows`（需已安装 .NET 8 SDK）
 - 需安装对应版本的 Autodesk 3ds Max SDK / 程序集引用
 
 ## 打开工程
 
 打开根目录 `NDToolsBox.sln`。
 
-还原 NuGet 包后编译目标 Max 版本工程。
+还原 NuGet 包后编译目标 Max 版本工程（Max 2026 首次请先 `dotnet restore Max2026\Max2026.csproj`）。
 
 ## 批量编译
 
@@ -23,7 +24,7 @@
 ```powershell
 .\build-all.ps1
 .\build-all.ps1 -Configuration Release
-.\build-all.ps1 -Years 2022,2023,2024
+.\build-all.ps1 -Years 2022,2023,2024,2025,2026
 ```
 
 - 默认 `Debug` + `x64`；探测 `%ProgramFiles%\Autodesk\3ds Max {年}\` 与 `D:\Program Files\Autodesk\3ds Max {年}\` 下是否存在 `Autodesk.Max.dll`。

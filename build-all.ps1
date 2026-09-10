@@ -6,7 +6,7 @@
 .EXAMPLE
   .\build-all.ps1
   .\build-all.ps1 -Configuration Release
-  .\build-all.ps1 -Years 2022,2023,2024
+  .\build-all.ps1 -Years 2022,2023,2024,2025,2026
   .\build-all.ps1 -Force -Years 2015
   .\build-all.ps1 -NoPause
 
@@ -21,7 +21,7 @@ param(
     [ValidateSet('x64', 'AnyCPU', 'Any CPU')]
     [string] $Platform = 'x64',
 
-    # Comma-separated years, e.g. "2022,2023,2024". Empty = all mapped years.
+    # Comma-separated years, e.g. "2022,2023,2024,2025,2026". Empty = all mapped years.
     [string] $Years = '',
 
     [switch] $Force,
@@ -52,6 +52,8 @@ $Projects = @(
     @{ Year = 2022; RelPath = 'Max2022\Max2022.csproj' }
     @{ Year = 2023; RelPath = 'Max2023\Max2023.csproj' }
     @{ Year = 2024; RelPath = 'Max2024\Max2024.csproj' }
+    @{ Year = 2025; RelPath = 'Max2025\Max2025.csproj' }
+    @{ Year = 2026; RelPath = 'Max2026\Max2026.csproj' }
 )
 
 $LogDir = Join-Path $RepoRoot 'dist\logs'

@@ -53,7 +53,7 @@ namespace NDToolsBox
                 return "NDBox";
             }
         }
-#if M2022 || M2023 || M2024
+#if M2022 || M2023 || M2024 || M2025 || M2026
 
         public override string NonLocalizedClassName => "NDBox";
 #endif
