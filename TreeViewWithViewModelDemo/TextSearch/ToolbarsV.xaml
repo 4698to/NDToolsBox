@@ -314,14 +314,16 @@
 
 
         </Style>
-        <ContextMenu  x:Key="dynamicContextMenu" Opened="dynamicContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
-            <MenuItem Header="编辑名字" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GEditItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+        <ContextMenu  x:Key="dynamicContextMenu" x:Shared="false" Opened="dynamicContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}"
+                      DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+            <MenuItem Header="编辑" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GEditItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="设置上下间距" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding SetItemSpacingCommand}"/>
             <MenuItem Header="插入间隔" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding AddMarginCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="复制" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GCopyItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="黏贴" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GPasetItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="删除" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding RemoverItem}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
             <MenuItem Header="保存配置" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GSaveItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+            <MenuItem Header="刷新" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Command="{Binding GReloadItemCommand}"/>
         </ContextMenu>
         <ContextMenu  x:Key="dynamicSpeedContextMenu" x:Name="SpeedContextMenu" Opened="dynamicSpeedContextMenu_Opened" Background="{StaticResource MaxUiBackgroundColor}" Foreground="{DynamicResource MaxTextColor}">
             <MenuItem Header="1/4x" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="MySpeedButton_S1_Click" />

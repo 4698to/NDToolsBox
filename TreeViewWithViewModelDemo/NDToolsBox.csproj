@@ -150,6 +150,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Page Include="..\Max2022\NDCustomTabLists.xaml">
+      <Link>NDCustomTabLists.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="..\Max2022\NDListBox.xaml">
+      <Link>NDListBox.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="..\Max2023\SelectSetToolBar.xaml">
       <Link>SelectSetToolBar.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
@@ -169,6 +179,14 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Max2022\NDCustomTabLists.xaml.cs">
+      <Link>NDCustomTabLists.xaml.cs</Link>
+      <DependentUpon>NDCustomTabLists.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\Max2022\NDListBox.xaml.cs">
+      <Link>NDListBox.xaml.cs</Link>
+      <DependentUpon>NDListBox.xaml</DependentUpon>
+    </Compile>
     <Compile Include="..\Max2023\SelectSetCuiDock.cs">
       <Link>SelectSetCuiDock.cs</Link>
     </Compile>

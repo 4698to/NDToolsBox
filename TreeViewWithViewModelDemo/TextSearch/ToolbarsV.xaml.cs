@@ -95,25 +95,28 @@ namespace NDToolsBox.TextSearch
                 {
                     _tabsConfig = new ToolBarTabsConfig();
                 }
+                bool migrated = false;
                 foreach (CustomToolbarTab tab in _tabsConfig.Tabs)
                 {
                     if (tab == null || string.IsNullOrEmpty(tab.Id))
                     {
                         continue;
                     }
-                    if (tab.ListIds == null)
-                    {
-                        tab.ListIds = new System.Collections.Generic.List<string>();
-                    }
-                    while (tab.ListIds.Count < 3)
-                    {
-                        tab.ListIds.Add("CustomTab_" + tab.Id + "_" + (tab.ListIds.Count + 1));
-                    }
+                    string beforeListId = tab.ListId;
+                    tab.Normalize();
                     if (string.IsNullOrEmpty(tab.Header))
                     {
                         tab.Header = "自定义";
                     }
                     InsertCustomTabItem(tab, MainTabControl.Items.Count - 1);
+                    if (!string.Equals(beforeListId, tab.ListId, StringComparison.Ordinal))
+                    {
+                        migrated = true;
+                    }
+                }
+                if (migrated)
+                {
+                    SaveTabsConfig();
                 }
             }
             finally
@@ -134,25 +137,20 @@ namespace NDToolsBox.TextSearch
             panel.LostKeyboardFocus += dockpanel_LostKeyboardFocus;
             panel.IsEnabledChanged += dockpanel_IsEnabledChanged;
 
-            if (tabData.ListIds == null)
+            tabData.Normalize();
+            var lists = new NDCustomTabLists();
+            lists.InitWithSaveName(tabData.ListId);
+            // 旧 ListId（*_1）合并迁移后，同步为统一文件名（无 _1 后缀）
+            if (lists.TabLists != null && !string.IsNullOrEmpty(lists.TabLists.SavePath))
             {
-                tabData.ListIds = new System.Collections.Generic.List<string>();
-            }
-            while (tabData.ListIds.Count < 3)
-            {
-                tabData.ListIds.Add("CustomTab_" + tabData.Id + "_" + (tabData.ListIds.Count + 1));
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                var listBox = new NDListBox();
-                if (i > 0)
+                string canonical = System.IO.Path.GetFileNameWithoutExtension(lists.TabLists.SavePath);
+                if (!string.IsNullOrEmpty(canonical) &&
+                    !string.Equals(tabData.ListId, canonical, StringComparison.OrdinalIgnoreCase))
                 {
-                    listBox.Margin = new Thickness(0, 5, 0, 0);
+                    tabData.ListId = canonical;
                 }
-                listBox.InitWithSaveName(tabData.ListIds[i]);
-                panel.Children.Add(listBox);
             }
+            panel.Children.Add(lists);
 
             var tabItem = new TabItem
             {
@@ -166,8 +164,9 @@ namespace NDToolsBox.TextSearch
                 Content = panel,
                 Tag = tabData
             };
-            tabItem.ContextMenu = CreateCustomTabContextMenu(tabItem);
-            // 自定义 TabItem 模板下，仅设 ContextMenu 时侧栏标题右键常打不开；手动打开并固定目标
+            // 不要设 tabItem.ContextMenu：Content 是 TabItem 逻辑子级，右键列表时会弹出 Tab 的「重命名/删除」而不是完整 dynamicContextMenu
+            ContextMenu headerMenu = CreateCustomTabContextMenu(tabItem);
+            tabItem.Resources["customTabHeaderContextMenu"] = headerMenu;
             tabItem.PreviewMouseRightButtonUp += CustomTabItem_PreviewMouseRightButtonUp;
 
             if (insertIndex < 0 || insertIndex > MainTabControl.Items.Count)
@@ -210,13 +209,38 @@ namespace NDToolsBox.TextSearch
         private void CustomTabItem_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             var tabItem = sender as TabItem;
-            if (tabItem == null || tabItem.ContextMenu == null)
+            if (tabItem == null)
             {
                 return;
             }
-            tabItem.ContextMenu.PlacementTarget = tabItem;
-            tabItem.ContextMenu.IsOpen = true;
+            // 仅标题区域在 TabItem 视觉树内；内容在 ContentPresenter 下，不应打开 Tab 菜单
+            var src = e.OriginalSource as DependencyObject;
+            if (src == null || !IsVisualDescendantOf(src, tabItem))
+            {
+                return;
+            }
+            var menu = tabItem.Resources["customTabHeaderContextMenu"] as ContextMenu;
+            if (menu == null)
+            {
+                return;
+            }
+            menu.PlacementTarget = tabItem;
+            menu.IsOpen = true;
             e.Handled = true;
+        }
+
+        private static bool IsVisualDescendantOf(DependencyObject child, DependencyObject ancestor)
+        {
+            DependencyObject current = child;
+            while (current != null)
+            {
+                if (ReferenceEquals(current, ancestor))
+                {
+                    return true;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return false;
         }
 
         private void SaveTabsConfig()
@@ -338,21 +362,18 @@ namespace NDToolsBox.TextSearch
             }
             SaveTabsConfig();
 
-            if (tabData.ListIds != null)
+            foreach (string listId in tabData.ConfigFileNames())
             {
-                foreach (string listId in tabData.ListIds)
+                try
                 {
-                    try
+                    string path = System.IO.Path.Combine(WebAddress.apppath, listId + ".xml");
+                    if (File.Exists(path))
                     {
-                        string path = System.IO.Path.Combine(WebAddress.apppath, listId + ".xml");
-                        if (File.Exists(path))
-                        {
-                            File.Delete(path);
-                        }
+                        File.Delete(path);
                     }
-                    catch
-                    {
-                    }
+                }
+                catch
+                {
                 }
             }
 
@@ -608,20 +629,16 @@ namespace NDToolsBox.TextSearch
         }
         private void dynamicContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-
-            /*// 获取右键单击的 ListBoxItem
-            var item = (System.Windows.Controls.ListBox)dynamicContextMenu.PlacementTarget;
-
-            if (item != null)
+            var menu = sender as ContextMenu;
+            if (menu == null)
             {
-                RightButtonDown_item_index = item.SelectedIndex;
-                // 在这里处理右键单击 ListBoxItem 的逻辑
-                e.Handled = true;
+                return;
             }
-            else
+            var target = menu.PlacementTarget as FrameworkElement;
+            if (target != null)
             {
-                RightButtonDown_item_index = -1;
-            }*/
+                menu.DataContext = target.DataContext;
+            }
         }
 
         private void OnKeyDownHandler(object sender, KeyEventArgs e)

@@ -19,6 +19,7 @@ using System.Windows.Shapes;
 using MaxToolbars.Toobars;
 using System.Diagnostics;
 using System.Xml.Serialization;
+using System.Xml.Linq;
 namespace NDToolsBox
 {
     /// <summary>
@@ -69,8 +70,33 @@ namespace NDToolsBox
             _itemlist.LoadOrNewItems();
             base.DataContext = _itemlist;
         }
+
+        /// <summary>
+        /// 使用已有 ViewModel（自定义 Tab 多段列表中的一段）。
+        /// </summary>
+        public void InitWithViewModel(NDListBoxViewModle model)
+        {
+            if (model == null)
+            {
+                return;
+            }
+            _saveInitialized = true;
+            _itemlist = model;
+            base.DataContext = _itemlist;
+        }
         private void dynamicContextMenu_Opened(object sender, RoutedEventArgs e)
         {
+            var menu = sender as ContextMenu;
+            if (menu == null)
+            {
+                return;
+            }
+            var target = menu.PlacementTarget as FrameworkElement;
+            if (target != null)
+            {
+                menu.DataContext = target.DataContext;
+            }
+            CommandManager.InvalidateRequerySuggested();
         }
         private void MyListBox_DragEnter(object sender, DragEventArgs e)
         {
@@ -318,15 +344,7 @@ namespace NDToolsBox
         {
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
-                toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (!string.IsNullOrEmpty(item.Path))
-                {
-                    Clipboard.SetText(item.Path, TextDataFormat.UnicodeText);
-                }
-                if (!string.IsNullOrEmpty(item.Commit))
-                {
-                    Clipboard.SetText(item.Commit, TextDataFormat.UnicodeText);
-                }
+                ToolbarItemClipboard.Copy(parameter as toolbarItemViewModle);
             }
         }
     }
@@ -343,28 +361,7 @@ namespace NDToolsBox
         {
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
-                toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (Clipboard.ContainsText(TextDataFormat.UnicodeText))
-                {
-                    string Path_or_commit = Clipboard.GetText(TextDataFormat.UnicodeText);
-                    if (File.Exists(Path_or_commit))
-                    {
-                        item.Path = Path_or_commit; item.Commit = string.Empty;
-                    }
-                    else
-                    {
-                        item.Commit = Path_or_commit; item.Path = string.Empty;
-                        string name = ScriptsUtilities.GetNDBoxMxsCommitScriptName(Path_or_commit);
-                        if (string.IsNullOrEmpty(name))
-                        {
-                            item.Name = "Mxs";
-                        }
-                        else
-                        {
-                            item.Name = name;
-                        }
-                    }
-                }
+                ToolbarItemClipboard.PasteOnto(parameter as toolbarItemViewModle);
             }
         }
     }
@@ -388,7 +385,11 @@ namespace NDToolsBox
             }
             _toolViewModel.ItemMarginTop = values.Top;
             _toolViewModel.ItemMarginBottom = values.Bottom;
-            if (_toolViewModel.GSaveItemCommand != null && !string.IsNullOrEmpty(_toolViewModel.GSaveItemCommand.Save_Path))
+            if (_toolViewModel.OwnerTab != null)
+            {
+                _toolViewModel.OwnerTab.SaveToXml();
+            }
+            else if (_toolViewModel.GSaveItemCommand != null && !string.IsNullOrEmpty(_toolViewModel.GSaveItemCommand.Save_Path))
             {
                 CfgHelpPersonXml.SaveXml(_toolViewModel, _toolViewModel.GSaveItemCommand.Save_Path);
             }
@@ -413,12 +414,18 @@ namespace NDToolsBox
                 {
                     return;
                 }
-                string newName = UiPrompt.PromptText("编辑名字", "请输入按钮显示名称：", item.Name);
-                if (string.IsNullOrWhiteSpace(newName))
+                ButtonEditValues values = UiPrompt.PromptButtonEdit(
+                    "编辑按钮",
+                    item.Name,
+                    item.Commit,
+                    item.ToolTip);
+                if (values == null)
                 {
                     return;
                 }
-                item.Name = newName.Trim();
+                item.Name = values.Name;
+                item.Commit = values.Commit;
+                item.ToolTip = values.ToolTip;
                 item.IsEdit = false;
             }
         }
@@ -435,7 +442,466 @@ namespace NDToolsBox
         }
         public override void Execute(object parameter)
         {
+            if (_toolViewModel.OwnerTab != null)
+            {
+                _toolViewModel.OwnerTab.SaveToXml();
+                return;
+            }
             CfgHelpPersonXml.SaveXml(_toolViewModel, Save_Path);
+        }
+    }
+
+    public class NDListBoxReloadItemCommand : NDListBoxItemCommand
+    {
+        public NDListBoxReloadItemCommand()
+        {
+        }
+        public NDListBoxReloadItemCommand(NDListBoxViewModle tool) : base(tool)
+        {
+        }
+        public override void Execute(object parameter)
+        {
+            if (_toolViewModel.OwnerTab != null)
+            {
+                _toolViewModel.OwnerTab.ReloadFromXml();
+                return;
+            }
+            _toolViewModel.ReloadFromXml();
+        }
+    }
+
+    /// <summary>
+    /// 在当前自定义 Tab 下新增一组 Expander + ListBox（仅 OwnerTab 时可用）。
+    /// </summary>
+    public class NDListBoxAddSectionCommand : NDListBoxItemCommand
+    {
+        public NDListBoxAddSectionCommand()
+        {
+        }
+        public NDListBoxAddSectionCommand(NDListBoxViewModle tool) : base(tool)
+        {
+        }
+        public override bool CanExecute(object parameter)
+        {
+            return _toolViewModel != null && _toolViewModel.OwnerTab != null;
+        }
+        public override void Execute(object parameter)
+        {
+            if (_toolViewModel != null && _toolViewModel.OwnerTab != null)
+            {
+                _toolViewModel.OwnerTab.AddSection();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 自定义 Tab 整页配置：Items 中每一项对应一组 Expander + ListBox。
+    /// </summary>
+    public class CustomTabListsViewModle : INotifyPropertyChanged
+    {
+        private ObservableCollection<NDListBoxViewModle> _items;
+
+        [XmlIgnore]
+        public string SavePath { get; set; }
+
+        public event Action Reloaded;
+
+        public CustomTabListsViewModle()
+        {
+            _items = new ObservableCollection<NDListBoxViewModle>();
+        }
+
+        [XmlArray("Items")]
+        [XmlArrayItem("NDListBoxViewModle")]
+        public ObservableCollection<NDListBoxViewModle> Items
+        {
+            get { return _items; }
+            set
+            {
+                _items = value ?? new ObservableCollection<NDListBoxViewModle>();
+                OnPropertyChanged("Items");
+            }
+        }
+
+        public void AttachOwners()
+        {
+            if (_items == null)
+            {
+                return;
+            }
+            foreach (NDListBoxViewModle section in _items)
+            {
+                if (section != null)
+                {
+                    section.OwnerTab = this;
+                    if (section.Items == null)
+                    {
+                        section.NewItemsTools();
+                    }
+                }
+            }
+        }
+
+        public void SaveToXml()
+        {
+            if (string.IsNullOrEmpty(SavePath))
+            {
+                return;
+            }
+            CfgHelpPersonXml.SaveXml(this, SavePath);
+        }
+
+        public void ReloadFromXml()
+        {
+            CustomTabListsViewModle loaded = LoadOrCreate(SavePath);
+            Items = loaded.Items;
+            AttachOwners();
+            RaiseReloaded();
+        }
+
+        /// <summary>
+        /// 新增一组 Expander + ListBox，写入配置并刷新界面。
+        /// </summary>
+        public void AddSection()
+        {
+            if (_items == null)
+            {
+                _items = new ObservableCollection<NDListBoxViewModle>();
+            }
+            var section = new NDListBoxViewModle();
+            section.NewItemsTools();
+            section.OwnerTab = this;
+            _items.Add(section);
+            OnPropertyChanged("Items");
+            SaveToXml();
+            RaiseReloaded();
+        }
+
+        private void RaiseReloaded()
+        {
+            if (Reloaded != null)
+            {
+                Reloaded();
+            }
+        }
+
+        public static CustomTabListsViewModle CreateDefault(string savePath)
+        {
+            var vm = new CustomTabListsViewModle { SavePath = savePath };
+            var section = new NDListBoxViewModle();
+            section.NewItemsTools();
+            section.OwnerTab = vm;
+            vm.Items.Add(section);
+            return vm;
+        }
+
+        /// <summary>
+        /// 加载自定义 Tab 配置；兼容：
+        /// - CustomTabListsViewModle（多段 Expander）
+        /// - 旧版单列表 NDListBoxViewModle
+        /// - 同一 NDListBoxViewModle 下多个并列 &lt;Items&gt;（每段一组按钮 → 多个 Expander）
+        /// - 旧版 CustomTab_*_1/2/3.xml 三列文件 → 合并为多段
+        /// </summary>
+        public static CustomTabListsViewModle LoadOrCreate(string savePath)
+        {
+            if (string.IsNullOrEmpty(savePath))
+            {
+                return CreateDefault(savePath);
+            }
+
+            string unifiedPath = GetUnifiedListPath(savePath);
+
+            CustomTabListsViewModle loaded = TryLoadMultiFile(unifiedPath);
+            if (loaded != null)
+            {
+                return loaded;
+            }
+            if (!string.Equals(unifiedPath, savePath, StringComparison.OrdinalIgnoreCase))
+            {
+                loaded = TryLoadMultiFile(savePath);
+                if (loaded != null)
+                {
+                    return loaded;
+                }
+            }
+
+            // 旧三列 _1/_2/_3 并存时优先合并
+            loaded = TryLoadLegacyColumnFiles(savePath);
+            if (loaded != null)
+            {
+                return loaded;
+            }
+
+            if (File.Exists(savePath))
+            {
+                loaded = TryLoadNdListBoxMultipleItemsGroups(savePath);
+                if (loaded != null)
+                {
+                    return loaded;
+                }
+
+                loaded = TryLoadSingleAsOneSection(savePath);
+                if (loaded != null)
+                {
+                    return loaded;
+                }
+            }
+
+            return CreateDefault(unifiedPath);
+        }
+
+        /// <summary>CustomTab_xxx_1.xml → CustomTab_xxx.xml</summary>
+        public static string GetUnifiedListPath(string savePath)
+        {
+            if (string.IsNullOrEmpty(savePath))
+            {
+                return savePath;
+            }
+            string dir = System.IO.Path.GetDirectoryName(savePath);
+            string name = System.IO.Path.GetFileNameWithoutExtension(savePath);
+            if (string.IsNullOrEmpty(name))
+            {
+                return savePath;
+            }
+            int us = name.LastIndexOf('_');
+            if (us > 0 && us < name.Length - 1)
+            {
+                string suffix = name.Substring(us + 1);
+                int n;
+                if (int.TryParse(suffix, out n) && n >= 1 && n <= 99)
+                {
+                    string prefix = name.Substring(0, us);
+                    return System.IO.Path.Combine(dir ?? string.Empty, prefix + ".xml");
+                }
+            }
+            return savePath;
+        }
+
+        public static string ReadAllTextDetectEncoding(string path)
+        {
+            using (var reader = new StreamReader(path, true))
+            {
+                return reader.ReadToEnd();
+            }
+        }
+
+        private static CustomTabListsViewModle TryLoadMultiFile(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                return null;
+            }
+            try
+            {
+                string xmltext = ReadAllTextDetectEncoding(path);
+                CustomTabListsViewModle multi = CfgHelpPersonXml.DeserializeFromXmlString<CustomTabListsViewModle>(xmltext);
+                if (multi != null && multi.Items != null && multi.Items.Count > 0)
+                {
+                    // 避免把「单列表误反序列化成空壳多段」：段里应是按钮列表模型
+                    multi.SavePath = path;
+                    multi.AttachOwners();
+                    return multi;
+                }
+            }
+            catch
+            {
+            }
+            return null;
+        }
+
+        private static CustomTabListsViewModle TryLoadSingleAsOneSection(string path)
+        {
+            try
+            {
+                string xmltext = ReadAllTextDetectEncoding(path);
+                NDListBoxViewModle single = CfgHelpPersonXml.DeserializeFromXmlString<NDListBoxViewModle>(xmltext);
+                if (single == null)
+                {
+                    return null;
+                }
+                string unified = GetUnifiedListPath(path);
+                var multi = new CustomTabListsViewModle { SavePath = unified };
+                if (single.Items == null || single.Items.Count == 0)
+                {
+                    single.NewItemsTools();
+                }
+                single.OwnerTab = multi;
+                multi.Items.Add(single);
+                return multi;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 解析根为 NDListBoxViewModle、含多个并列 &lt;Items&gt; 的文件（用户手写多段）。
+        /// </summary>
+        private static CustomTabListsViewModle TryLoadNdListBoxMultipleItemsGroups(string path)
+        {
+            try
+            {
+                string xmltext = ReadAllTextDetectEncoding(path);
+                XDocument doc = XDocument.Parse(xmltext);
+                XElement root = doc.Root;
+                if (root == null || root.Name.LocalName != "NDListBoxViewModle")
+                {
+                    return null;
+                }
+                List<XElement> groups = root.Elements().Where(e => e.Name.LocalName == "Items").ToList();
+                if (groups.Count <= 1)
+                {
+                    return null;
+                }
+
+                string unified = GetUnifiedListPath(path);
+                var multi = new CustomTabListsViewModle { SavePath = unified };
+                XElement[] shared = root.Elements()
+                    .Where(e => e.Name.LocalName != "Items")
+                    .ToArray();
+                foreach (XElement group in groups)
+                {
+                    var wrapper = new XElement(root.Name, shared, new XElement(group));
+                    NDListBoxViewModle section =
+                        CfgHelpPersonXml.DeserializeFromXmlString<NDListBoxViewModle>(wrapper.ToString());
+                    if (section == null)
+                    {
+                        continue;
+                    }
+                    if (section.Items == null || section.Items.Count == 0)
+                    {
+                        section.NewItemsTools();
+                    }
+                    section.OwnerTab = multi;
+                    multi.Items.Add(section);
+                }
+                if (multi.Items.Count == 0)
+                {
+                    return null;
+                }
+                multi.AttachOwners();
+                try
+                {
+                    multi.SaveToXml();
+                }
+                catch
+                {
+                }
+                return multi;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 合并 CustomTab_xxx_1.xml / _2.xml / _3.xml 为多段；SavePath 改为 CustomTab_xxx.xml。
+        /// </summary>
+        private static CustomTabListsViewModle TryLoadLegacyColumnFiles(string savePath)
+        {
+            string dir = System.IO.Path.GetDirectoryName(savePath);
+            string name = System.IO.Path.GetFileNameWithoutExtension(savePath);
+            if (string.IsNullOrEmpty(dir) || string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            string prefix = name;
+            int us = name.LastIndexOf('_');
+            if (us > 0)
+            {
+                string suffix = name.Substring(us + 1);
+                int n;
+                if (int.TryParse(suffix, out n) && n >= 1 && n <= 99)
+                {
+                    prefix = name.Substring(0, us);
+                }
+            }
+
+            string col1 = System.IO.Path.Combine(dir, prefix + "_1.xml");
+            if (!File.Exists(col1))
+            {
+                return null;
+            }
+            // 至少还要有一列兄弟文件，才走「旧三列合并」；否则交给单文件逻辑
+            bool hasSibling = false;
+            for (int i = 2; i <= 9; i++)
+            {
+                if (File.Exists(System.IO.Path.Combine(dir, prefix + "_" + i + ".xml")))
+                {
+                    hasSibling = true;
+                    break;
+                }
+            }
+            if (!hasSibling)
+            {
+                return null;
+            }
+
+            string unified = System.IO.Path.Combine(dir, prefix + ".xml");
+            var multi = new CustomTabListsViewModle { SavePath = unified };
+            for (int i = 1; i <= 20; i++)
+            {
+                string colPath = System.IO.Path.Combine(dir, prefix + "_" + i + ".xml");
+                if (!File.Exists(colPath))
+                {
+                    break;
+                }
+
+                CustomTabListsViewModle fromGroups = TryLoadNdListBoxMultipleItemsGroups(colPath);
+                if (fromGroups != null && fromGroups.Items != null && fromGroups.Items.Count > 0)
+                {
+                    foreach (NDListBoxViewModle s in fromGroups.Items)
+                    {
+                        if (s == null)
+                        {
+                            continue;
+                        }
+                        s.OwnerTab = multi;
+                        multi.Items.Add(s);
+                    }
+                    continue;
+                }
+
+                CustomTabListsViewModle one = TryLoadSingleAsOneSection(colPath);
+                if (one != null && one.Items != null)
+                {
+                    foreach (NDListBoxViewModle s in one.Items)
+                    {
+                        if (s == null)
+                        {
+                            continue;
+                        }
+                        s.OwnerTab = multi;
+                        multi.Items.Add(s);
+                    }
+                }
+            }
+
+            if (multi.Items.Count == 0)
+            {
+                return null;
+            }
+            multi.AttachOwners();
+            try
+            {
+                multi.SaveToXml();
+            }
+            catch
+            {
+            }
+            return multi;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
         }
     }
 
@@ -444,6 +910,8 @@ namespace NDToolsBox
 
         private ObservableCollection<toolbarItemViewModle> _items;
         private NDListBoxSaveItemCommand _SaveCommand;
+        private NDListBoxReloadItemCommand _ReloadCommand;
+        private NDListBoxAddSectionCommand _AddSectionCommand;
         private NDListBoxEditItemCommand _EditItemCommand;
         private NDListBoxRemoveItemCommand _removerItemCommand;
         private NDListBoxCopyItemCommand _copyItemCommand;
@@ -452,14 +920,24 @@ namespace NDToolsBox
         private NDListBoxSetItemSpacingCommand _setItemSpacingCommand;
         private int _itemMarginTop = 1;
         private int _itemMarginBottom = 1;
+        private string _header = "...";
 
         [XmlIgnore]
         private string _name;
+
+        /// <summary>
+        /// 所属自定义 Tab 整页配置；非空时保存/刷新写整份 CustomTabLists xml。
+        /// </summary>
+        [XmlIgnore]
+        public CustomTabListsViewModle OwnerTab { get; set; }
+
         public NDListBoxViewModle()
         {
             _items = new ObservableCollection<toolbarItemViewModle>();
             _SaveCommand = new NDListBoxSaveItemCommand(this);
             _SaveCommand.Save_Path = $@"{WebAddress.apppath}\{_name}.xml";
+            _ReloadCommand = new NDListBoxReloadItemCommand(this);
+            _AddSectionCommand = new NDListBoxAddSectionCommand(this);
 
             _EditItemCommand = new NDListBoxEditItemCommand(this);
             _removerItemCommand = new NDListBoxRemoveItemCommand(this);
@@ -467,6 +945,19 @@ namespace NDToolsBox
             _pasetItemCommand = new NDListBoxPasetItemCommand(this);
             _addMarginItemCommand = new NDListBoxAddItemMarginCommand(this);
             _setItemSpacingCommand = new NDListBoxSetItemSpacingCommand(this);
+        }
+
+        /// <summary>
+        /// Expander 标题；默认 "..."。
+        /// </summary>
+        public string Header
+        {
+            get { return string.IsNullOrEmpty(_header) ? "..." : _header; }
+            set
+            {
+                _header = value;
+                this.OnPropertyChanged("Header");
+            }
         }
         public void SetSaveName(string n)
         { 
@@ -476,6 +967,14 @@ namespace NDToolsBox
 
         public void LoadOrNewItems()
         {
+            ReloadFromXml(false);
+        }
+
+        /// <summary>
+        /// 从 xml 重新加载列表；force 时即使文件为空也覆盖内存中的当前项。
+        /// </summary>
+        public void ReloadFromXml(bool force = true)
+        {
             string path = _SaveCommand != null ? _SaveCommand.Save_Path : null;
             if (!string.IsNullOrEmpty(path) && File.Exists(path))
             {
@@ -483,24 +982,26 @@ namespace NDToolsBox
                 {
                     string xmltext = File.ReadAllText(path, new UTF8Encoding(false));
                     NDListBoxViewModle loaded = CfgHelpPersonXml.DeserializeFromXmlString<NDListBoxViewModle>(xmltext);
-                    if (loaded != null && loaded.Items != null && loaded.Items.Count > 0)
-                    {
-                        ItemMarginTop = loaded.ItemMarginTop;
-                        ItemMarginBottom = loaded.ItemMarginBottom;
-                        Items = loaded.Items;
-                        return;
-                    }
                     if (loaded != null)
                     {
                         ItemMarginTop = loaded.ItemMarginTop;
                         ItemMarginBottom = loaded.ItemMarginBottom;
+                        if (loaded.Items != null && (force || loaded.Items.Count > 0))
+                        {
+                            Items = loaded.Items;
+                            if (Items == null || Items.Count == 0)
+                            {
+                                NewItemsTools();
+                            }
+                            return;
+                        }
                     }
                 }
                 catch
                 {
                 }
             }
-            if (Items == null || Items.Count == 0)
+            if (force || Items == null || Items.Count == 0)
             {
                 NewItemsTools();
             }
@@ -685,6 +1186,14 @@ namespace NDToolsBox
         public NDListBoxSaveItemCommand GSaveItemCommand
         {
             get { return _SaveCommand; }
+        }
+        public NDListBoxReloadItemCommand GReloadItemCommand
+        {
+            get { return _ReloadCommand; }
+        }
+        public NDListBoxAddSectionCommand GAddSectionCommand
+        {
+            get { return _AddSectionCommand; }
         }
         public NDListBoxEditItemCommand GEditItemCommand
         {

@@ -97,15 +97,7 @@ namespace MaxToolbars.Toobars
         {
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
-                toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (!string.IsNullOrEmpty(item.Path))
-                {
-                    Clipboard.SetText(item.Path, TextDataFormat.UnicodeText);
-                }
-                if (!string.IsNullOrEmpty(item.Commit))
-                { 
-                    Clipboard.SetText(item.Commit, TextDataFormat.UnicodeText);
-                }
+                ToolbarItemClipboard.Copy(parameter as toolbarItemViewModle);
             }
         }
     }
@@ -133,26 +125,7 @@ namespace MaxToolbars.Toobars
         {
             if (parameter.GetType() == typeof(toolbarItemViewModle))
             {
-                toolbarItemViewModle item = parameter as toolbarItemViewModle;
-                if (Clipboard.ContainsText(TextDataFormat.UnicodeText))
-                { 
-                    string Path_or_commit = Clipboard.GetText(TextDataFormat.UnicodeText);
-                    if (File.Exists(Path_or_commit))
-                    {
-                        item.Path = Path_or_commit; item.Commit = string.Empty;
-                    }
-                    else {
-                        item.Commit = Path_or_commit; item.Path = string.Empty;
-                        string name = ScriptsUtilities.GetNDBoxMxsCommitScriptName(Path_or_commit);
-                        if (string.IsNullOrEmpty(name))
-                        {
-                            item.Name = "Mxs";
-                        }
-                        else {
-                            item.Name = name;
-                        }
-                    }
-                }
+                ToolbarItemClipboard.PasteOnto(parameter as toolbarItemViewModle);
             }
         }
     }
@@ -217,12 +190,18 @@ namespace MaxToolbars.Toobars
                 {
                     return;
                 }
-                string newName = UiPrompt.PromptText("编辑名字", "请输入按钮显示名称：", item.Name);
-                if (string.IsNullOrWhiteSpace(newName))
+                ButtonEditValues values = UiPrompt.PromptButtonEdit(
+                    "编辑按钮",
+                    item.Name,
+                    item.Commit,
+                    item.ToolTip);
+                if (values == null)
                 {
                     return;
                 }
-                item.Name = newName.Trim();
+                item.Name = values.Name;
+                item.Commit = values.Commit;
+                item.ToolTip = values.ToolTip;
                 item.IsEdit = false;
             }
         }
@@ -251,6 +230,32 @@ namespace MaxToolbars.Toobars
         void ICommand.Execute(object parameter)
         {
             CfgHelpPersonXml.SaveXml(_toolViewModel, WebAddress.ToolBarItemConfig);
+        }
+    }
+
+    public class ReloadItemCommand : ICommand
+    {
+        public readonly toolbarsViewModle _toolViewModel;
+
+        public ReloadItemCommand(toolbarsViewModle tool)
+        {
+            this._toolViewModel = tool;
+        }
+
+        event EventHandler ICommand.CanExecuteChanged
+        {
+            add { }
+            remove { }
+        }
+
+        bool ICommand.CanExecute(object parameter)
+        {
+            return true;
+        }
+
+        void ICommand.Execute(object parameter)
+        {
+            _toolViewModel.ReloadFromXml();
         }
     }
 
@@ -368,6 +373,27 @@ namespace MaxToolbars.Toobars
 
             }
         }
+
+        /// <summary>
+        /// 配置中实际存储的 ToolTip（不含回退到 Name）。
+        /// </summary>
+        [XmlIgnore]
+        public string StoredToolTip
+        {
+            get { return this.tooltip ?? string.Empty; }
+        }
+
+        public void ApplyFields(string name, string path, string commit, string toolTip, bool space)
+        {
+            Name = name ?? string.Empty;
+            Path = path ?? string.Empty;
+            Commit = commit ?? string.Empty;
+            this.tooltip = toolTip ?? string.Empty;
+            this.OnPropertyChanged("ToolTip");
+            Space = space;
+            IsEdit = false;
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -393,6 +419,7 @@ namespace MaxToolbars.Toobars
         private int end;
 
         private SaveItemCommand _SaveCommand;
+        private ReloadItemCommand _ReloadCommand;
         private EditItemCommand _EditItemCommand;
         private RemoveItemCommand _removerItemCommand;
         private CopyItemCommand _copyItemCommand;
@@ -406,6 +433,7 @@ namespace MaxToolbars.Toobars
         {
             _items = new ObservableCollection<toolbarItemViewModle>();solid_items = new ObservableCollection<toolbarItemViewModle>();
             _SaveCommand = new SaveItemCommand(this);
+            _ReloadCommand = new ReloadItemCommand(this);
             _EditItemCommand = new EditItemCommand(this);
             _removerItemCommand = new RemoveItemCommand(this);
             _copyItemCommand = new CopyItemCommand(this);
@@ -413,6 +441,41 @@ namespace MaxToolbars.Toobars
             _addMarginItemCommand = new AddMarginItemCommand(this);
             _setItemSpacingCommand = new SetItemSpacingCommand(this);
 
+        }
+
+        /// <summary>
+        /// 从 ToolBarItem 配置 xml 重新加载列表（保留当前 ViewModel 与命令绑定）。
+        /// </summary>
+        public void ReloadFromXml()
+        {
+            toolbarsViewModle loaded = CfgHelpPersonXml.ReadToolBarItem(WebAddress.ToolBarItemConfig);
+            if (loaded == null)
+            {
+                NewItemsTools();
+                NewSolidItems();
+                this.OnPropertyChanged("Items");
+                this.OnPropertyChanged("SolidItems");
+                this.OnPropertyChanged("ItemRowMargin");
+                return;
+            }
+            ItemMarginTop = loaded.ItemMarginTop;
+            ItemMarginBottom = loaded.ItemMarginBottom;
+            Items = loaded.Items != null
+                ? loaded.Items
+                : new ObservableCollection<toolbarItemViewModle>();
+            SolidItems = loaded.SolidItems != null
+                ? loaded.SolidItems
+                : new ObservableCollection<toolbarItemViewModle>();
+            if (Items.Count < 1)
+            {
+                NewItemsTools();
+                this.OnPropertyChanged("Items");
+            }
+            if (SolidItems.Count < 1)
+            {
+                NewSolidItems();
+                this.OnPropertyChanged("SolidItems");
+            }
         }
         public void NewItemsTools()
         { 
@@ -509,6 +572,10 @@ namespace MaxToolbars.Toobars
         public SaveItemCommand GSaveItemCommand
         {
             get { return _SaveCommand; }
+        }
+        public ReloadItemCommand GReloadItemCommand
+        {
+            get { return _ReloadCommand; }
         }
         public EditItemCommand GEditItemCommand
         {
@@ -717,6 +784,100 @@ namespace MaxToolbars.Toobars
                 this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             else
                 Console.WriteLine("tree view model PropertyChanged is null");
+        }
+    }
+
+    /// <summary>
+    /// 剪贴板中的完整按钮快照（与纯 Path/Commit 文本区分）。
+    /// </summary>
+    [XmlRoot("ToolbarItem")]
+    public class ToolbarItemClipboardData
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public string Commit { get; set; }
+        public string ToolTip { get; set; }
+        public bool Space { get; set; }
+    }
+
+    public static class ToolbarItemClipboard
+    {
+        private const string Prefix = "NDToolsBox.ToolbarItem.v1\n";
+
+        public static void Copy(toolbarItemViewModle item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+            var data = new ToolbarItemClipboardData
+            {
+                Name = item.Name ?? string.Empty,
+                Path = item.Path ?? string.Empty,
+                Commit = item.Commit ?? string.Empty,
+                ToolTip = item.StoredToolTip,
+                Space = item.Space
+            };
+            var serializer = new XmlSerializer(typeof(ToolbarItemClipboardData));
+            using (var writer = new StringWriter())
+            {
+                serializer.Serialize(writer, data);
+                Clipboard.SetText(Prefix + writer.ToString(), TextDataFormat.UnicodeText);
+            }
+        }
+
+        /// <summary>
+        /// 将剪贴板内容应用到目标按钮。优先完整按钮快照；否则按旧逻辑粘贴 Path 或 Commit。
+        /// </summary>
+        public static bool PasteOnto(toolbarItemViewModle target)
+        {
+            if (target == null || !Clipboard.ContainsText(TextDataFormat.UnicodeText))
+            {
+                return false;
+            }
+            string text = Clipboard.GetText(TextDataFormat.UnicodeText);
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            if (text.StartsWith(Prefix, StringComparison.Ordinal))
+            {
+                string xml = text.Substring(Prefix.Length);
+                try
+                {
+                    var serializer = new XmlSerializer(typeof(ToolbarItemClipboardData));
+                    using (var reader = new StringReader(xml))
+                    {
+                        var data = serializer.Deserialize(reader) as ToolbarItemClipboardData;
+                        if (data == null)
+                        {
+                            return false;
+                        }
+                        target.ApplyFields(data.Name, data.Path, data.Commit, data.ToolTip, data.Space);
+                        return true;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            // 兼容：外部粘贴文件路径或 MaxScript 文本
+            if (File.Exists(text))
+            {
+                target.ApplyFields(target.Name, text, string.Empty, target.StoredToolTip, target.Space);
+                return true;
+            }
+
+            string name = ScriptsUtilities.GetNDBoxMxsCommitScriptName(text);
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "Mxs";
+            }
+            target.ApplyFields(name, string.Empty, text, target.StoredToolTip, target.Space);
+            return true;
         }
     }
 }

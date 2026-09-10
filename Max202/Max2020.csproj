@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -162,6 +162,14 @@
       <Link>TextSearch\TextSearchDemoControl.xaml.cs</Link>
       <DependentUpon>TextSearchDemoControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="..\Max2022\NDListBox.xaml.cs">
+      <Link>NDListBox.xaml.cs</Link>
+      <DependentUpon>NDListBox.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\Max2022\NDCustomTabLists.xaml.cs">
+      <Link>NDCustomTabLists.xaml.cs</Link>
+      <DependentUpon>NDCustomTabLists.xaml</DependentUpon>
+    </Compile>
     <Compile Include="..\TreeViewWithViewModelDemo\TextSearch\ToolbarsV.xaml.cs">
       <Link>TextSearch\ToolbarsV.xaml.cs</Link>
       <DependentUpon>ToolbarsV.xaml</DependentUpon>
@@ -230,6 +238,16 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="..\Max2022\NDListBox.xaml">
+      <Link>NDListBox.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="..\Max2022\NDCustomTabLists.xaml">
+      <Link>NDCustomTabLists.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="..\TreeViewWithViewModelDemo\TextSearch\ToolbarsV.xaml">
       <Link>TextSearch\ToolbarsV.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
@@ -238,7 +256,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>Copy "$(TargetDir)$(TargetName).dll" "D:\Program Files\Autodesk\3ds Max 2020\bin\assemblies\$(TargetName).dll"
-Copy "$(TargetDir)$(TargetName).dll" "G:\Git_NDBox\天晴动作组脚本工具v4.47For2015\NDBox\2020\assemblies\$(TargetName).dll"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>
