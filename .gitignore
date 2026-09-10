@@ -7,7 +7,7 @@ obj/
 *.userosscache
 *.sln.docstates
 *.vsidx
-
+*.pdb
 ## NuGet
 packages/
 *.nupkg
@@ -16,7 +16,6 @@ project.fragment.lock.json
 artifacts/
 
 ## Build results
-dist/
 [Dd]ebug/
 [Rr]elease/
 x64/
