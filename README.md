@@ -16,6 +16,46 @@
 
 还原 NuGet 包后编译目标 Max 版本工程。
 
+## 批量编译
+
+各 Max 年版需分别输出同名 `NDToolsBox.dll`（依赖该年 `Autodesk.Max`）。可用根目录脚本按本机已安装版本一键编译：
+
+```powershell
+.\build-all.ps1
+.\build-all.ps1 -Configuration Release
+.\build-all.ps1 -Years 2022,2023,2024
+```
+
+- 默认 `Debug` + `x64`；探测 `%ProgramFiles%\Autodesk\3ds Max {年}\` 与 `D:\Program Files\Autodesk\3ds Max {年}\` 下是否存在 `Autodesk.Max.dll`。
+- 未安装的年份会 **Skip**，不算失败；仅编译失败才返回非 0。
+- `-Force`：即使未检测到 Max 也尝试编译（CI / 自定义 SDK 路径）。
+- `-MsBuild`：可指定 `MSBuild.exe` 路径。
+- `-NoPause`：结束后不暂停（CI）；默认会 `Press Enter`，避免窗口一闪关闭。
+- 不编译杂糅工程 `TreeViewWithViewModelDemo\NDToolsBox.csproj` 及测试辅助工程。
+
+输出复制到 `dist\{年份}\assemblies\NDToolsBox.dll`（若存在则一并复制 `.pdb`）。工程目录下的 `bin\` 仍会保留中间产物。各 `Max20xx` 工程的 PostBuild 拷贝到 Max 安装目录已清空，避免 Max 占用 DLL 或旧路径导致 MSB3073。
+
+**重要（调试时必看）：** 3ds Max 加载的是安装目录里的程序集，例如：
+
+`D:\Program Files\Autodesk\3ds Max 2022\bin\assemblies\NDToolsBox.dll`
+
+VS 编到 `Max2022\bin\Debug\` 或 `bin\x64\Debug\` **不会自动覆盖**上述路径。Max 开着时该文件会被锁定。请：
+
+1. **完全退出** `3dsmax.exe`  
+2. 复制最新 DLL，例如：
+
+```powershell
+Copy-Item -Force "G:\ND_openSource\NDToolsBox-3dsMax\Max2022\bin\Debug\NDToolsBox.dll" `
+  "D:\Program Files\Autodesk\3ds Max 2022\bin\assemblies\NDToolsBox.dll"
+```
+
+3. 再启动 Max 验证（自定义 Tab 右键应出现「新建列表组」）
+
+编译日志：
+
+- 总日志：`dist\logs\build-all-yyyyMMdd-HHmmss.log`
+- 各年版：`dist\{年份}\build.log`、`dist\{年份}\build.msbuild.log`（含完整错误信息）
+
 ## ToolbarsV 用户配置
 
 侧边工具栏（`ToolbarsV`）的用户数据写在插件安装目录，代码里对应 `WebAddress.apppath`：
@@ -25,16 +65,19 @@
 | 文件 | 内容 |
 |------|------|
 | `ToolBar.xml` | 「动画」页按钮列表（常用工具、时间段等） |
-| `ToolBarTabs.xml` | 用户自定义 Tab 元数据：`Id`、标题、三列列表的 `ListId` |
+| `ToolBarTabs.xml` | 用户自定义 Tab：`Id`、标题、`ListId`（该 Tab 唯一列表配置名） |
 | `{控件名}.xml` | 「绑定」页三列列表，对应 XAML 中 `NDListBox` 的 `Name`：`MyListBox_Rig.xml`、`MyListBox_Rig_2.xml`、`MyListBox_Rig_3.xml` |
-| `CustomTab_{Id}_{1\|2\|3}.xml` | 每个自定义 Tab 的三列脚本按钮及上下间距（`ItemMarginTop` / `ItemMarginBottom`） |
+| `CustomTab_{Id}.xml` | 自定义 Tab 整页配置：`CustomTabListsViewModle`，`Items` 中每一项是一组 Expander+ListBox |
 
 说明：
 
-- 点击左侧 `+` 会新建 Tab，并写入 `ToolBarTabs.xml`；各列首次保存或改动后生成对应 `CustomTab_*.xml`。
-- 自定义 Tab 右键「重命名」只改 `ToolBarTabs.xml` 中的标题；「删除」会从该文件移除条目，并删除该 Tab 下三列 xml。
-- 列表内按钮改名、增删、复制粘贴、设置上下间距，都保存在各自列表 xml 中，不写入 `ToolBarTabs.xml`。
-- 备份或迁移用户工具条时，复制上述目录中的这些 xml 即可；删除自定义 Tab 的 xml 而不改 `ToolBarTabs.xml` 时，下次启动会按空列表重建该列。
+- 点击左侧 `+` 会新建 Tab，并写入 `ToolBarTabs.xml`；该 Tab 的列表首次保存或改动后生成对应 `CustomTab_*.xml`（默认一段 Expander）。
+- 自定义 Tab 右键「重命名」只改 `ToolBarTabs.xml` 中的标题；「删除」会从该文件移除条目，并删除该 Tab 的列表 xml。
+- 列表内按钮改名、增删、复制粘贴、设置上下间距、刷新，都作用在整份 `CustomTab_*.xml` 上。
+- 旧版单列表 `NDListBoxViewModle` xml 加载时自动包成一段；旧版三列 `ListIds` 仍迁到单个 `ListId`。
+- 备份或迁移用户工具条时，复制上述目录中的这些 xml 即可。
+
+外部程序若要批量创建 / 更新自定义 Tab，见：[docs/external-tool-custom-tabs.md](docs/external-tool-custom-tabs.md)（多段 `Items`、合并写回与刷新生效方式）。
 
 ## 相关
 
