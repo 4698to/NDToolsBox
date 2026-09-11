@@ -87,14 +87,11 @@ namespace NDToolsBox
         }
         private void try_set_widow_size(System.Windows.Size size)
         {
-            if (size.Width > 50)
+            if (dialog == null)
             {
-                dialog.Width = size.Width + 160d;
+                return;
             }
-            else { 
-                dialog.Width = 170d;
-            }
-            dialog.Height = 40d;
+            dialog.try_set_widow_size(size);
         }
         private void try_set_widow_pos()
         {

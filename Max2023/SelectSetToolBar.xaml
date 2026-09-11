@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NDToolsBox"
         mc:Ignorable="d"
-        MaxWidth="3074" MinWidth="200" MinHeight="30" Height="40" Width="150" x:Name="NDSeleMainWindow">
+        MaxWidth="3074" MinWidth="200" MinHeight="40" Height="40" Width="520" x:Name="NDSeleMainWindow">
     <Window.Background>
         <SolidColorBrush Color="{Binding GetMaxUiBackgroundColor}" />
     </Window.Background>
@@ -136,17 +136,27 @@
 
 
         <Border x:Name="myBorder" CornerRadius ="4" BorderThickness ="2" BorderBrush="Black" Background="{StaticResource MaxUiBackgroundColor}" >
-            <StackPanel x:Name="dockpanel" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" >
-                <ItemsControl x:Name="MyListBox" ItemsSource="{Binding Items}" >
+            <Grid Margin="6,4,6,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ItemsControl x:Name="MyListBox" Grid.Column="0" ItemsSource="{Binding Items}" VerticalAlignment="Center" HorizontalAlignment="Stretch" >
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <VirtualizingStackPanel Orientation="Horizontal"></VirtualizingStackPanel>
+                            <WrapPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <!-- 左右间距 + 行间距 -->
+                            <Setter Property="Margin" Value="0,2,4,2"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
-                                <Button x:Name="MyListBoxButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Content="{Binding Name}" Style="{StaticResource BtnStyle}" Background="{Binding Color}" Margin="2 0 2 0" Padding="2 0 2 0"  FontSize="11" Height="26" Click="MyListBoxButton_Click"/>
+                                <Button x:Name="MyListBoxButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Content="{Binding Name}" Style="{StaticResource BtnStyle}" Background="{Binding Color}" Margin="0" Padding="4 0 4 0"  FontSize="11" Height="26" Click="MyListBoxButton_Click"/>
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="加入选择集" Command="{Binding Path=DataContext.AddNodeCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Index}"/>
@@ -156,6 +166,9 @@
                                         <MenuItem Header="创建选择集" Command="{Binding Path=DataContext.AddCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
                                         <MenuItem Header="导入" Command="{Binding Path=DataContext.ImportCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
                                         <MenuItem Header="导出" Command="{Binding Path=DataContext.ExportCommand, Source={x:Reference MyListBox}}" CommandParameter="{Binding Name}"/>
+                                        <Separator></Separator>
+                                        <MenuItem Header="设置" Click="ToolbarSettingsMenuItem_Click"/>
+                                        <MenuItem Header="关闭" Click="ToolbarCloseMenuItem_Click"/>
                                     </ContextMenu>          
                                 </StackPanel.ContextMenu>
                             </StackPanel>
@@ -166,12 +179,13 @@
 
 
                 </ItemsControl>
-                <Button x:Name="MyListBoxAddButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe6b4;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="20 0 2 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxAddButton_Click" ToolTip="新建选择集" />
-                <Button x:Name="MyListBoxResetButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe650;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxResetButton_Click" ToolTip="刷新选择集"/>
-                <Button x:Name="MyListBoxSettingsButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe608;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="过滤词设置" Click="MyListBoxSettingsButton_Click"/>
-                <Button x:Name="MyListBoxCloseButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe607;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="5 0 2 0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="鼠标右键调整大小"/>
-
-            </StackPanel>
+                <StackPanel x:Name="dockpanel" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0" >
+                    <Button x:Name="MyListBoxAddButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe6b4;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="0 0 4 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxAddButton_Click" ToolTip="新建选择集" />
+                    <Button x:Name="MyListBoxResetButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe650;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="0 0 4 0" Padding="2 0 2 0"  FontSize="18" Height="30" Click="MyListBoxResetButton_Click" ToolTip="刷新选择集"/>
+                    <Button x:Name="MyListBoxSettingsButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe608;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="0 0 4 0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="过滤词设置" Click="MyListBoxSettingsButton_Click"/>
+                    <Button x:Name="MyListBoxCloseButton" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Left" Content="&#xe607;" FontFamily="{StaticResource IconFont}" Style="{StaticResource SettingButton}" Background="{StaticResource ButtonColor_A}" Margin="0" Padding="2 0 2 0"  FontSize="16" Height="30" ToolTip="鼠标右键调整大小"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

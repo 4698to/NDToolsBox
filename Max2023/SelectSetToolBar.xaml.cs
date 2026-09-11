@@ -26,6 +26,8 @@ namespace NDToolsBox
         private GlobalDelegates.Delegate5 SelSetName_deleg;
 
         public filterSettings _filterWidow;
+        private bool _adjustingSize;
+
         public SelectSetToolBar()
         {
             InitializeComponent();
@@ -33,9 +35,8 @@ namespace NDToolsBox
             UpSelSet();
             
             base.DataContext = _itemlist;
-            
-            
-            
+
+            this.SizeChanged += SelectSetToolBar_SizeChanged;
 
 #if M2015 || M2016
             SelSetName_deleg = new GlobalDelegates.Delegate5(SelSetName_Delegate6_Callback);
@@ -44,19 +45,66 @@ namespace NDToolsBox
 #endif
             
         }
+
+        private void SelectSetToolBar_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (_adjustingSize || !e.WidthChanged)
+            {
+                return;
+            }
+            // 用户拖宽/拖窄后按新宽度重新换行并适配高度
+            AdjustHeightToContent();
+        }
+
+        /// <summary>
+        /// 按当前窗口宽度让选择集按钮自动换行，并增高窗口以容纳多行。
+        /// </summary>
         public void try_set_widow_size(System.Windows.Size size)
         {
-            base.UpdateLayout();
+            if (Width < MinWidth || double.IsNaN(Width))
+            {
+                Width = 520;
+            }
+            // 不再随按钮数量无限加宽；固定/保留当前宽度，超出部分换行
+            AdjustHeightToContent();
+        }
 
-            if (size.Width > 50)
+        private void AdjustHeightToContent()
+        {
+            if (_adjustingSize)
             {
-                base.Width = size.Width + 160d;
+                return;
             }
-            else
+            _adjustingSize = true;
+            try
             {
-                base.Width = 170d;
+                UpdateLayout();
+                // Grid 左右边距各 6，工具区与列表间距 8
+                const double sidePad = 6;
+                const double toolsGap = 8;
+                double toolsW = dockpanel.ActualWidth > 1 ? dockpanel.ActualWidth : 120;
+                double wrapW = Math.Max(80, ActualWidth - toolsW - sidePad * 2 - toolsGap - 8);
+                MyListBox.MaxWidth = wrapW;
+                MyListBox.Width = wrapW;
+                UpdateLayout();
+
+                double contentH = MyListBox.DesiredSize.Height;
+                if (contentH < 26)
+                {
+                    contentH = 26;
+                }
+                // 上下边距 4+4 + Border
+                double newH = contentH + 8 + 8;
+                if (newH < MinHeight)
+                {
+                    newH = MinHeight;
+                }
+                Height = newH;
             }
-            base.Height = 40d;
+            finally
+            {
+                _adjustingSize = false;
+            }
         }
         public void RegisterNamedSelSet()
         {
@@ -69,6 +117,8 @@ namespace NDToolsBox
                 ScriptsUtilities.global.RegisterNotification(SelSetName_deleg, null, SystemNotificationCode.FilePostOpen);
 
             }
+            ScriptsUtilities.SelSetListChanged -= OnSelSetListChanged;
+            ScriptsUtilities.SelSetListChanged += OnSelSetListChanged;
         }
         public void UnRegisterNamedSelSet()
         {
@@ -81,13 +131,26 @@ namespace NDToolsBox
                 ScriptsUtilities.global.UnRegisterNotification(SelSetName_deleg, null, SystemNotificationCode.NamedSelSetPreModify);
 
             }
+            ScriptsUtilities.SelSetListChanged -= OnSelSetListChanged;
+        }
+        private void OnSelSetListChanged()
+        {
+            UpSelSet();
         }
         private void SelSetName_Delegate5_Callback(IntPtr param0, INotifyInfo param1)
         {
+            if (ScriptsUtilities.SuspendSelSetToolbarRefresh)
+            {
+                return;
+            }
             UpSelSet();
         }
         private void SelSetName_Delegate6_Callback(IntPtr param0, IntPtr param1)
         {
+            if (ScriptsUtilities.SuspendSelSetToolbarRefresh)
+            {
+                return;
+            }
             UpSelSet();
         }
         public void UpSelSet()
@@ -156,6 +219,18 @@ namespace NDToolsBox
         {
             
 
+        }
+
+        private void ToolbarCloseMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // 复用关闭按钮上由 SelectSetCuiDock 挂接的 Click 处理
+            MyListBoxCloseButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        }
+
+        private void ToolbarSettingsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // 复用设置按钮上由 SelectSetCuiDock 挂接的 Click 处理
+            MyListBoxSettingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }
     }
 }
