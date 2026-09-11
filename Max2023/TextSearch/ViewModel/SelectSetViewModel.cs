@@ -34,11 +34,20 @@ namespace NDToolsBox
         {
             this.Name = n;
         }
+        public Node(string n, string guid)
+        {
+            this.Name = n;
+            this.GUID = guid;
+        }
         public Node(INode n)
         {
             this.Name = n.Name;
             this.node = n;
             
+        }
+        public bool ShouldSerializeGUID()
+        {
+            return !string.IsNullOrEmpty(GUID);
         }
     }
     [XmlRoot("SelSetItem")]

@@ -100,42 +100,43 @@ namespace NDToolsBox
 
         private void btn_import_Click(object sender, RoutedEventArgs e)
         {
-
-            IntPtr hwnd = AppSDK.GetMaxHWND(); //new WindowInteropHelper(this).Handle;
-            
-            string file_path = System.IO.Path.GetFileNameWithoutExtension(ScriptsUtilities.ip.CurFileName);
-            string initia_path = System.IO.Path.GetDirectoryName(ScriptsUtilities.ip.CurFilePath);
-
-            //ScriptsUtilities.print(file_path);
-            //ScriptsUtilities.print(initia_path);
+            IntPtr hwnd = AppSDK.GetMaxHWND();
+            string file_path = ScriptsUtilities.GetDefaultSelSetFileName();
+            string initia_path = ScriptsUtilities.GetDefaultSelSetDirectory();
 
             FileDialogFilterList fileDialogFilterList = new ManagedServices.FileDialogFilterList("xml (*.xml)|*.xml|");
 
-            if (PathSDK.DoMaxOpenDialog(hwnd, "import selName xml ", ref file_path, ref initia_path, fileDialogFilterList))
+            if (PathSDK.DoMaxOpenDialog(hwnd, "import selName xml", ref file_path, ref initia_path, fileDialogFilterList))
             {
-                if (File.Exists(file_path))
+                string fullPath = ScriptsUtilities.CombineDialogPath(file_path, initia_path);
+                if (File.Exists(fullPath))
                 {
-                    ScriptsUtilities.ImportSeleSet(file_path);
+                    ScriptsUtilities.ImportSeleSet(fullPath);
                 }
-                //ScriptsUtilities.DeserializeXml(file_path);
-
+                else
+                {
+                    MessageBox.Show(
+                        $"导入失败：文件不存在\n{fullPath}",
+                        "错误",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
-
         }
 
         private void btn_export_Click(object sender, RoutedEventArgs e)
         {
             IntPtr hwnd = AppSDK.GetMaxHWND();
-            string file_path = System.IO.Path.GetFileNameWithoutExtension(ScriptsUtilities.ip.CurFileName);
-            string initia_path = System.IO.Path.GetDirectoryName(ScriptsUtilities.ip.CurFilePath);
-            //ScriptsUtilities.print(initia_path);
-            
+            string file_path = ScriptsUtilities.GetDefaultSelSetFileName();
+            string initia_path = ScriptsUtilities.GetDefaultSelSetDirectory();
+
             FileDialogFilterList fileDialogFilterList = new ManagedServices.FileDialogFilterList("xml (*.xml)|*.xml|");
 
             if (PathSDK.DoMaxSaveAsDialog(hwnd, "export selName xml", ref file_path, ref initia_path, fileDialogFilterList))
             {
-                //ScriptsUtilities.SerializeListTToXml(file_path);
-                ScriptsUtilities.ExportSeleSet(file_path);
+                string fullPath = ScriptsUtilities.EnsureXmlExtension(
+                    ScriptsUtilities.CombineDialogPath(file_path, initia_path));
+                ScriptsUtilities.ExportSeleSet(fullPath);
             }
         }
     }

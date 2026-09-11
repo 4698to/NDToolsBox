@@ -110,13 +110,213 @@ namespace NDToolsBox
         public static string[] color_lib = new string[] {
             "#bdbdbc","#676767","#c35c4d","#f3e068","#4ba062","#4b9f5f","#489dae","#afa0df"
         };
+
+        /// <summary>与 MaxScript getAppData/setAppData 互通的 AppData 键（v4.ms 使用 1001 存 GUID）。</summary>
+        public const uint MxsAppDataGuidId = 1001;
+
+        private static readonly uint MxsUtilityClassIdA = 0x4d64858;
+        private static readonly uint MxsUtilityClassIdB = 0x16d1751d;
+
+        private static IClass_ID GetMxsAppDataClassId()
+        {
+            return global.Class_ID.Create(MxsUtilityClassIdA, MxsUtilityClassIdB);
+        }
+
+        public static string GetMxsAppData(IINode node, uint id)
+        {
+            if (node == null)
+            {
+                return null;
+            }
+            try
+            {
+                IAnimatable anim = node as IAnimatable;
+                if (anim == null)
+                {
+                    return null;
+                }
+                IAppDataChunk chunk = anim.GetAppDataChunk(GetMxsAppDataClassId(), SClass_ID.Utility, id);
+                if (chunk == null || chunk.Data == null || chunk.Data.Length == 0)
+                {
+                    return null;
+                }
+                return DecodeMxsAppDataBytes(chunk.Data);
+            }
+            catch (Exception ex)
+            {
+                print($"GetMxsAppData 失败: {ex.Message}");
+                return null;
+            }
+        }
+
+        public static void SetMxsAppData(IINode node, uint id, string value)
+        {
+            if (node == null)
+            {
+                return;
+            }
+            try
+            {
+                IAnimatable anim = node as IAnimatable;
+                if (anim == null)
+                {
+                    return;
+                }
+                IClass_ID cid = GetMxsAppDataClassId();
+                anim.RemoveAppDataChunk(cid, SClass_ID.Utility, id);
+                if (value == null)
+                {
+                    return;
+                }
+                byte[] bytes = Encoding.UTF8.GetBytes(value + "\0");
+                anim.AddAppDataChunk(cid, SClass_ID.Utility, id, bytes);
+            }
+            catch (Exception ex)
+            {
+                print($"SetMxsAppData 失败: {ex.Message}");
+            }
+        }
+
+        private static string DecodeMxsAppDataBytes(byte[] data)
+        {
+            int start = 0;
+            if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
+            {
+                start = 3;
+            }
+            int end = data.Length;
+            for (int i = start; i < data.Length; i++)
+            {
+                if (data[i] == 0)
+                {
+                    end = i;
+                    break;
+                }
+            }
+            if (end <= start)
+            {
+                return string.Empty;
+            }
+            try
+            {
+                return Encoding.UTF8.GetString(data, start, end - start);
+            }
+            catch
+            {
+                return Encoding.Default.GetString(data, start, end - start);
+            }
+        }
+
+        public static string EnsureNodeGuid(IINode node)
+        {
+            if (node == null)
+            {
+                return null;
+            }
+            string guid = GetMxsAppData(node, MxsAppDataGuidId);
+            if (!string.IsNullOrEmpty(guid))
+            {
+                return guid;
+            }
+            guid = Guid.NewGuid().ToString("B").ToUpperInvariant();
+            SetMxsAppData(node, MxsAppDataGuidId, guid);
+            return guid;
+        }
+
+        public static string CombineDialogPath(string filePath, string directory)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+            if (Path.IsPathRooted(filePath))
+            {
+                return filePath;
+            }
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return filePath;
+            }
+            return Path.Combine(directory, filePath);
+        }
+
+        public static string EnsureXmlExtension(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return path;
+            }
+            if (!path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return path + ".xml";
+            }
+            return path;
+        }
+
+        public static string GetDefaultSelSetFileName()
+        {
+            try
+            {
+                string name = Path.GetFileNameWithoutExtension(ip.CurFileName);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    return name;
+                }
+            }
+            catch
+            {
+            }
+            return "SelSets";
+        }
+
+        public static string GetDefaultSelSetDirectory()
+        {
+            try
+            {
+                string dir = Path.GetDirectoryName(ip.CurFilePath);
+                if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                {
+                    return dir;
+                }
+            }
+            catch
+            {
+            }
+            return Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
+
+        private static bool TryPickXmlFile(bool openForRead, out string filePath, out string initialDir)
+        {
+            filePath = GetDefaultSelSetFileName();
+            initialDir = GetDefaultSelSetDirectory();
+            IntPtr hwnd = AppSDK.GetMaxHWND();
+            var filters = new FileDialogFilterList("xml (*.xml)|*.xml|");
+            if (openForRead)
+            {
+                return PathSDK.DoMaxOpenDialog(hwnd, "import selName xml", ref filePath, ref initialDir, filters);
+            }
+            return PathSDK.DoMaxSaveAsDialog(hwnd, "export selName xml", ref filePath, ref initialDir, filters);
+        }
+
+        public static NameSet[] GetAllSeleSetNames()
+        {
+            int num = global.INamedSelectionSetManager.Instance.NumNamedSelSets;
+            List<NameSet> SetItems = new List<NameSet>();
+            for (int i = 0; i < num; i++)
+            {
+                string n = global.INamedSelectionSetManager.Instance.GetNamedSelSetName(i);
+                SetItems.Add(new NameSet(n, i));
+            }
+            return SetItems.ToArray();
+        }
+
         public static List<SetNameObject> GetSeteNames()
         {
             //https://www.cnblogs.com/Fred1987/p/18606119
             List<SetNameObject> NamedSelSet = new List<SetNameObject>();
             try
             {
-                NameSet[] s = GetSeleSetNames();
+                NameSet[] s = GetAllSeleSetNames();
                 foreach (NameSet i in s)
                 {
                     IINodeTab Nodes = global.INodeTab.Create();
@@ -125,7 +325,13 @@ namespace NDToolsBox
                     global.INamedSelectionSetManager.Instance.GetNamedSelSetList(Nodes, i.index);
                     for (int t = 0; t < Nodes.Count; t++)
                     {
-                        SetSel.Nodes.Add(new Node(Nodes[t].Name));
+                        IINode inode = Nodes[t];
+                        if (inode == null)
+                        {
+                            continue;
+                        }
+                        string guid = EnsureNodeGuid(inode);
+                        SetSel.Nodes.Add(new Node(inode.Name, guid));
                     }
                     NamedSelSet.Add(SetSel);
 
@@ -159,33 +365,87 @@ namespace NDToolsBox
         //导入选择集xml 
         public static void ImportSeleSet(string xmlFile)
         {
-            if (string.IsNullOrEmpty(xmlFile) || xmlFile.IndexOf('"') >= 0)
+            string fullPath = string.IsNullOrWhiteSpace(xmlFile) || xmlFile.IndexOf('"') >= 0
+                ? null
+                : xmlFile.Trim();
+            if (string.IsNullOrEmpty(fullPath) || !File.Exists(fullPath))
             {
-                print($"ImportSeleSet 路径无效: {xmlFile}");
+                print($"ImportSeleSet 路径无效或不存在: {xmlFile}");
+                MessageBox.Show(
+                    $"导入失败：文件不存在\n{xmlFile}",
+                    "错误",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
-            ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit.load_xml @\"{xmlFile}\"");
+            DeserializeXml(fullPath);
         }
         //导出选择集xml
         public static void ExportSeleSet(string xmlFile)
         {
-            if (string.IsNullOrEmpty(xmlFile) || xmlFile.IndexOf('"') >= 0)
+            string fullPath = EnsureXmlExtension(
+                string.IsNullOrWhiteSpace(xmlFile) || xmlFile.IndexOf('"') >= 0
+                    ? null
+                    : xmlFile.Trim());
+            if (string.IsNullOrEmpty(fullPath))
             {
                 print($"ExportSeleSet 路径无效: {xmlFile}");
+                MessageBox.Show(
+                    $"导出失败：路径无效\n{xmlFile}",
+                    "错误",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
-            ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit.save_xml @\"{xmlFile}\"");
+            string dir = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                MessageBox.Show(
+                    $"导出失败：目录不存在\n{dir}",
+                    "错误",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+            SerializeListTToXml(fullPath);
         }
         //导入选择集xml 
         public static void ImportSeleSet()
         {
-            ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit._import()");
+            string filePath;
+            string initialDir;
+            if (!TryPickXmlFile(openForRead: true, out filePath, out initialDir))
+            {
+                return;
+            }
+            ImportSeleSet(CombineDialogPath(filePath, initialDir));
         }
         //导出选择集xml
         public static void ExportSeleSet()
         {
-            ExecuteMAXScriptScript($"NDNamedSelSetsToolsInit._export()");
+            string filePath;
+            string initialDir;
+            if (!TryPickXmlFile(openForRead: false, out filePath, out initialDir))
+            {
+                return;
+            }
+            ExportSeleSet(CombineDialogPath(filePath, initialDir));
         }
+        /// <summary>为 true 时忽略 NamedSelSet 通知触发的工具条刷新（批量导入期间）。</summary>
+        public static bool SuspendSelSetToolbarRefresh { get; private set; }
+
+        /// <summary>选择集列表批量变更完成（如 XML 导入结束）后通知 UI 刷新一次。</summary>
+        public static event Action SelSetListChanged;
+
+        public static void NotifySelSetListChanged()
+        {
+            Action handler = SelSetListChanged;
+            if (handler != null)
+            {
+                handler();
+            }
+        }
+
         //读取 xml 反序列化选择集
         public static void DeserializeXml(string xmlFile)
         {
@@ -202,62 +462,231 @@ namespace NDToolsBox
                 );
                 return;
             }
-            int index = 0;
-            for (int i = 0; i < deserializedObjectList.Count; i++)
+
+            Dictionary<string, IINode> guidMap = BuildSceneGuidMap();
+            int yes = 0;
+            int no = 0;
+            StringBuilder detail = new StringBuilder();
+            SuspendSelSetToolbarRefresh = true;
+            try
             {
-                SetNameObject SetSel = deserializedObjectList[i];
-                ScriptsUtilities.NewSeleSetName(SetSel,ref index);
+                for (int i = 0; i < deserializedObjectList.Count; i++)
+                {
+                    SetNameObject SetSel = deserializedObjectList[i];
+                    if (TryCreateSeleSetFromXml(SetSel, guidMap, detail))
+                    {
+                        yes += 1;
+                    }
+                    else
+                    {
+                        no += 1;
+                    }
+                }
+            }
+            finally
+            {
+                SuspendSelSetToolbarRefresh = false;
+            }
+            // 全部导入完成后再刷新选择集工具条（避免每个 AddNewNamedSelSet 都刷一次）
+            NotifySelSetListChanged();
+
+            string summary = $"成功导入：{yes} 个, 失败：{no}";
+            print(summary);
+            if (detail.Length > 0)
+            {
+                print(detail.ToString());
             }
             MessageBox.Show(
-                $"导入完成，数量 -> {index}",
-                "Ok",
+                summary,
+                "打开 Listener 查看详细情况",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information
                 );
         }
-        //读写选择集 xml 重新创建 
-        public static void NewSeleSetName(SetNameObject SetSel,ref int index)
+
+        private static Dictionary<string, IINode> BuildSceneGuidMap()
+        {
+            var map = new Dictionary<string, IINode>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                IINode root = ip.RootNode;
+                if (root == null)
+                {
+                    return map;
+                }
+                CollectGuidMap(root, map, includeSelf: false);
+            }
+            catch (Exception ex)
+            {
+                print($"BuildSceneGuidMap 失败: {ex.Message}");
+            }
+            return map;
+        }
+
+        private static void CollectGuidMap(IINode node, Dictionary<string, IINode> map, bool includeSelf)
+        {
+            if (node == null)
+            {
+                return;
+            }
+            if (includeSelf)
+            {
+                string guid = GetMxsAppData(node, MxsAppDataGuidId);
+                if (!string.IsNullOrEmpty(guid) && !map.ContainsKey(guid))
+                {
+                    map[guid] = node;
+                }
+            }
+            int count = node.NumberOfChildren;
+            for (int i = 0; i < count; i++)
+            {
+                CollectGuidMap(node.GetChildNode(i), map, includeSelf: true);
+            }
+        }
+
+        private static IINode FindNodeByGuid(string guid, Dictionary<string, IINode> guidMap)
+        {
+            if (string.IsNullOrEmpty(guid) || guidMap == null)
+            {
+                return null;
+            }
+            IINode found;
+            if (guidMap.TryGetValue(guid, out found))
+            {
+                return found;
+            }
+            return null;
+        }
+
+        private static bool NodeListContains(List<IINode> list, IINode node)
+        {
+            if (list == null || node == null)
+            {
+                return false;
+            }
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (object.ReferenceEquals(list[i], node))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool TryCreateSeleSetFromXml(SetNameObject SetSel, Dictionary<string, IINode> guidMap, StringBuilder detail)
         {
             try
             {
-                if (SetSel.Nodes.Count < 1)
+                if (SetSel == null || string.IsNullOrEmpty(SetSel.Name) || SetSel.Nodes == null || SetSel.Nodes.Count < 1)
                 {
-                    ScriptsUtilities.print($"no nodes -> {SetSel.Name}");
-                    return;
+                    if (detail != null && SetSel != null)
+                    {
+                        detail.AppendLine($"no nodes -> {SetSel.Name}");
+                    }
+                    return false;
                 }
-               
-                IINodeTab Nodes = global.INodeTab.Create();
+
+                var matched = new List<IINode>();
+                int matchedExpected = 0;
                 for (int i = 0; i < SetSel.Nodes.Count; i++)
                 {
-                    //IAnimAppData
-                    
-                    IINode n = ip.GetINodeByName(SetSel.Nodes[i].Name);
-
-                    if (n != null)
+                    Node item = SetSel.Nodes[i];
+                    if (item == null)
                     {
-                        Nodes.AppendNode(n, false, 1);
+                        continue;
+                    }
+                    string wantGuid = item.GUID;
+                    IINode byName = string.IsNullOrEmpty(item.Name) ? null : ip.GetINodeByName(item.Name);
+
+                    if (byName != null)
+                    {
+                        string nodeGuid = GetMxsAppData(byName, MxsAppDataGuidId);
+                        if (!string.IsNullOrEmpty(wantGuid) && string.Equals(nodeGuid, wantGuid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!NodeListContains(matched, byName))
+                            {
+                                matched.Add(byName);
+                            }
+                            matchedExpected += 1;
+                        }
+                        else
+                        {
+                            IINode byGuid = FindNodeByGuid(wantGuid, guidMap);
+                            if (byGuid != null)
+                            {
+                                if (!NodeListContains(matched, byGuid))
+                                {
+                                    matched.Add(byGuid);
+                                }
+                                matchedExpected += 1;
+                            }
+                            else if (!NodeListContains(matched, byName))
+                            {
+                                matched.Add(byName);
+                                if (!string.IsNullOrEmpty(wantGuid) && detail != null)
+                                {
+                                    detail.AppendLine($"{SetSel.Name} GUID无法匹配 {item.Name}");
+                                }
+                            }
+                            else if (detail != null)
+                            {
+                                detail.AppendLine($"{SetSel.Name} GUID无法匹配 {item.Name}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        IINode byGuid = FindNodeByGuid(wantGuid, guidMap);
+                        if (byGuid != null)
+                        {
+                            if (!NodeListContains(matched, byGuid))
+                            {
+                                matched.Add(byGuid);
+                            }
+                            matchedExpected += 1;
+                        }
+                        else if (detail != null)
+                        {
+                            detail.AppendLine($"{SetSel.Name} 无法匹配 {item.Name}");
+                        }
                     }
                 }
-                if (Nodes.Count < 1) {
-                    return;
+
+                if (matched.Count < 1)
+                {
+                    return false;
                 }
+
+                IINodeTab Nodes = global.INodeTab.Create();
+                for (int i = 0; i < matched.Count; i++)
+                {
+                    Nodes.AppendNode(matched[i], false, 1);
+                }
+
                 string set_name = SetSel.Name;
                 global.INamedSelectionSetManager.Instance.RemoveNamedSelSet(ref set_name);
-
-                if (global.INamedSelectionSetManager.Instance.AddNewNamedSelSet(Nodes, ref set_name))
+                if (!global.INamedSelectionSetManager.Instance.AddNewNamedSelSet(Nodes, ref set_name))
                 {
-                    index += 1;
-                    //ScriptsUtilities.print($"AddNewNamedSelSet -{set_name} , {Nodes.Count}");
+                    return false;
                 }
-                else { 
-                    //ScriptsUtilities.print("AddNewNamedSelSet -> ");
-                }
+                return matchedExpected == SetSel.Nodes.Count || matched.Count == SetSel.Nodes.Count;
             }
             catch (Exception ex)
             {
                 ScriptsUtilities.print(ex.Message);
+                return false;
             }
+        }
 
+        //读写选择集 xml 重新创建 
+        public static void NewSeleSetName(SetNameObject SetSel,ref int index)
+        {
+            Dictionary<string, IINode> guidMap = BuildSceneGuidMap();
+            if (TryCreateSeleSetFromXml(SetSel, guidMap, null))
+            {
+                index += 1;
+            }
         }
         public static List<string> get_color_random(int indexCount)
         {

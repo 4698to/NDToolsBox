@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NDToolsBox"
         mc:Ignorable="d"
-        Title="过滤设置" Height="220" Width="260" ResizeMode="NoResize" MinHeight="140" MinWidth="220">
+        Title="过滤设置" Height="240" Width="280" ResizeMode="NoResize" MinHeight="160" MinWidth="240">
     <Window.Resources>
         <Style x:Key="InfoStyle" TargetType="CheckBox">
             <Setter Property="BorderBrush" Value="{x:Null}" />
@@ -31,18 +31,20 @@
             <Setter Property="Width" Value="135" />
             <Setter Property="Height" Value="22" />
             <Setter Property="BorderBrush" Value="{x:Null}" />
+            <Setter Property="ToolTip" Value="支持多词：空格、逗号、分号、顿号、竖线、斜杠等分隔，任一匹配即可"/>
         </Style>
     </Window.Resources>
 
     <Grid Background="#FF474747" >
         <Grid.RowDefinitions>
             <RowDefinition Height="10*"></RowDefinition>
-            <RowDefinition Height="17*"></RowDefinition>
-            <RowDefinition Height="17*"></RowDefinition>
-            <RowDefinition Height="17*"></RowDefinition>
-            <RowDefinition Height="17*"></RowDefinition>
-            <RowDefinition Height="17*"></RowDefinition>
-            <RowDefinition Height="10*"></RowDefinition>
+            <RowDefinition Height="15*"></RowDefinition>
+            <RowDefinition Height="15*"></RowDefinition>
+            <RowDefinition Height="15*"></RowDefinition>
+            <RowDefinition Height="15*"></RowDefinition>
+            <RowDefinition Height="12*"></RowDefinition>
+            <RowDefinition Height="15*"></RowDefinition>
+            <RowDefinition Height="8*"></RowDefinition>
 
         </Grid.RowDefinitions>
 
@@ -66,10 +68,11 @@
 
         <CheckBox x:Name="filter_back" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource InfoStyle}"/>
         <TextBlock x:Name="filter_back_name" Grid.Row="4" Grid.Column="1" Text="反向过滤" Style="{StaticResource InfoStyleText}" Foreground="White"/>
+        <TextBlock Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Text="多词：空格/逗号/分号/顿号/| 等（OR）" Foreground="#FFB0B0B0" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Left"/>
         <Button x:Name="btn_import" Grid.Column="2" Content="导入" HorizontalAlignment="Center" Grid.Row="1" Click="btn_import_Click" Style="{StaticResource InfoStyleButton}"/>
         <Button x:Name="btn_export" Grid.Column="2" Content="导出" HorizontalAlignment="Center" Grid.Row="2" Click="btn_export_Click" Style="{StaticResource InfoStyleButton}"/>
-        <Button x:Name="btn_cancel" Grid.Column="1" Content="取消" HorizontalAlignment="Left" Grid.Row="5"  Click="btn_cancel_Click" Style="{StaticResource InfoStyleButton}" />
-        <Button x:Name="btn_ok" Grid.Column="1" Content="确定" HorizontalAlignment="Right" Grid.Row="5" Click="btn_ok_Click" Style="{StaticResource InfoStyleButton}"/>
+        <Button x:Name="btn_cancel" Grid.Column="1" Content="取消" HorizontalAlignment="Left" Grid.Row="6"  Click="btn_cancel_Click" Style="{StaticResource InfoStyleButton}" />
+        <Button x:Name="btn_ok" Grid.Column="1" Content="确定" HorizontalAlignment="Right" Grid.Row="6" Click="btn_ok_Click" Style="{StaticResource InfoStyleButton}"/>
 
     </Grid>
 </Window>
