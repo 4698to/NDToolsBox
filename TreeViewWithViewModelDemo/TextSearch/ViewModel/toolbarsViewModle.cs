@@ -193,7 +193,7 @@ namespace MaxToolbars.Toobars
                 ButtonEditValues values = UiPrompt.PromptButtonEdit(
                     "编辑按钮",
                     item.Name,
-                    item.Commit,
+                    item.GetEditCommitText(),
                     item.ToolTip);
                 if (values == null)
                 {
@@ -201,6 +201,11 @@ namespace MaxToolbars.Toobars
                 }
                 item.Name = values.Name;
                 item.Commit = values.Commit;
+                // 编辑以 Commit 为准：有脚本内容时清掉 Path，避免点击仍优先跑旧路径而忽略编辑
+                if (!string.IsNullOrWhiteSpace(values.Commit))
+                {
+                    item.Path = string.Empty;
+                }
                 item.ToolTip = values.ToolTip;
                 item.IsEdit = false;
             }
@@ -392,6 +397,174 @@ namespace MaxToolbars.Toobars
             this.OnPropertyChanged("ToolTip");
             Space = space;
             IsEdit = false;
+        }
+
+        /// <summary>
+        /// 编辑对话框展示的脚本：优先 Commit；若为空且有 Path，则按扩展名生成执行命令。
+        /// </summary>
+        public string GetEditCommitText()
+        {
+            if (!string.IsNullOrEmpty(commit))
+            {
+                return commit;
+            }
+            if (!string.IsNullOrEmpty(path))
+            {
+                return BuildScriptCommit(path);
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 按扩展名生成侧栏按钮的执行脚本：.ms/.mse → filein；.py → python.ExecuteFile。
+        /// </summary>
+        public static string BuildScriptCommit(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return string.Empty;
+            }
+            string ext = System.IO.Path.GetExtension(filePath);
+            if (string.Equals(ext, ".py", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"python.ExecuteFile @\"{filePath}\"";
+            }
+            // .ms / .mse 及其它默认按 MaxScript filein
+            return $"filein @\"{filePath}\"";
+        }
+
+        /// <summary>
+        /// 解析黏贴/拖入的纯文本：路径按扩展名；#NDDrop / --NDPy 为 Python；--NDDrop 及其它为 MaxScript。
+        /// </summary>
+        public static bool TryResolveScriptText(string text, out string name, out string path, out string commit)
+        {
+            name = null;
+            path = string.Empty;
+            commit = string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            string trimmed = text.Trim();
+            string asPath = trimmed.Trim('"');
+            if (File.Exists(asPath))
+            {
+                path = asPath;
+                commit = BuildScriptCommit(asPath);
+                name = System.IO.Path.GetFileNameWithoutExtension(asPath);
+                return true;
+            }
+
+            if (TryParseTaggedScript(trimmed, out name, out commit))
+            {
+                path = string.Empty;
+                return true;
+            }
+
+            // 未标记：整段当作 MaxScript Commit
+            name = ScriptsUtilities.GetNDBoxMxsCommitScriptName(trimmed);
+            if (string.IsNullOrEmpty(name))
+            {
+                name = LooksLikePythonInvoke(trimmed) ? "Py" : "Mxs";
+            }
+            commit = trimmed;
+            path = string.Empty;
+            return true;
+        }
+
+        /// <summary>
+        /// #NDDrop;名称; / --NDPy;名称; → Python 源码（包装为 python.Execute）
+        /// --NDDrop;名称; → MaxScript（整段作为 Commit，与历史行为一致）
+        /// </summary>
+        private static bool TryParseTaggedScript(string text, out string name, out string commit)
+        {
+            name = null;
+            commit = null;
+            int lineEnd = text.IndexOfAny(new[] { '\r', '\n' });
+            string firstLine = lineEnd >= 0 ? text.Substring(0, lineEnd) : text;
+            string body = lineEnd >= 0 ? text.Substring(lineEnd).TrimStart('\r', '\n') : string.Empty;
+
+            if (firstLine.StartsWith("#NDDrop;", StringComparison.Ordinal)
+                || firstLine.StartsWith("--NDPy;", StringComparison.Ordinal))
+            {
+                name = ParseTaggedName(firstLine);
+                if (string.IsNullOrEmpty(body))
+                {
+                    body = RemainderAfterName(firstLine);
+                }
+                commit = WrapPythonAsMaxScript(body);
+                if (string.IsNullOrEmpty(name))
+                {
+                    name = "Py";
+                }
+                return true;
+            }
+
+            if (firstLine.StartsWith("--NDDrop;", StringComparison.Ordinal))
+            {
+                name = ParseTaggedName(firstLine);
+                commit = text;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string ParseTaggedName(string firstLine)
+        {
+            string[] parts = firstLine.Split(';');
+            if (parts.Length > 1)
+            {
+                return parts[1] ?? string.Empty;
+            }
+            return string.Empty;
+        }
+
+        private static string RemainderAfterName(string firstLine)
+        {
+            int first = firstLine.IndexOf(';');
+            if (first < 0)
+            {
+                return string.Empty;
+            }
+            int second = firstLine.IndexOf(';', first + 1);
+            if (second < 0 || second + 1 >= firstLine.Length)
+            {
+                return string.Empty;
+            }
+            return firstLine.Substring(second + 1).Trim();
+        }
+
+        private static bool LooksLikePythonInvoke(string text)
+        {
+            string t = text.TrimStart();
+            return t.StartsWith("python.ExecuteFile", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("python.Execute", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// 将 Python 源码包装为可在 Commit 中执行的 MaxScript。
+        /// 若已是 python.Execute / ExecuteFile，则原样返回。
+        /// </summary>
+        public static string WrapPythonAsMaxScript(string pythonCode)
+        {
+            if (string.IsNullOrEmpty(pythonCode))
+            {
+                return "python.Execute \"\"";
+            }
+            string trimmed = pythonCode.TrimStart();
+            if (LooksLikePythonInvoke(trimmed))
+            {
+                return pythonCode;
+            }
+            string escaped = pythonCode
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n")
+                .Replace("\n", "\\n");
+            return "python.Execute \"" + escaped + "\"";
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -701,6 +874,7 @@ namespace MaxToolbars.Toobars
             {
                 toolbarItemViewModle item = new toolbarItemViewModle(System.IO.Path.GetFileNameWithoutExtension(file_path));
                 item.Path = file_path;
+                item.Commit = toolbarItemViewModle.BuildScriptCommit(file_path);
                 if (index >= 0 && index < _items.Count)
                 {
                     _items.Insert(index, item);
@@ -717,6 +891,7 @@ namespace MaxToolbars.Toobars
             {
                 toolbarItemViewModle item = new toolbarItemViewModle(System.IO.Path.GetFileNameWithoutExtension(file_path));
                 item.Path = file_path;
+                item.Commit = toolbarItemViewModle.BuildScriptCommit(file_path);
                 if (index >= 0 && index < items.Count)
                 {
                     items.Insert(index, item);
@@ -864,19 +1039,21 @@ namespace MaxToolbars.Toobars
                 }
             }
 
-            // 兼容：外部粘贴文件路径或 MaxScript 文本
-            if (File.Exists(text))
+            // 兼容：外部粘贴文件路径 / MaxScript / Python 文本
+            if (!toolbarItemViewModle.TryResolveScriptText(text, out string name, out string path, out string commit))
             {
-                target.ApplyFields(target.Name, text, string.Empty, target.StoredToolTip, target.Space);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // 路径黏贴：更新 Path/Commit，保留原显示名（若有）
+                string keepName = string.IsNullOrEmpty(target.Name) ? name : target.Name;
+                target.ApplyFields(keepName, path, commit, target.StoredToolTip, target.Space);
                 return true;
             }
 
-            string name = ScriptsUtilities.GetNDBoxMxsCommitScriptName(text);
-            if (string.IsNullOrEmpty(name))
-            {
-                name = "Mxs";
-            }
-            target.ApplyFields(name, string.Empty, text, target.StoredToolTip, target.Space);
+            target.ApplyFields(name, string.Empty, commit, target.StoredToolTip, target.Space);
             return true;
         }
     }

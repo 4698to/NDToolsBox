@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Collections.Generic;
+using MaxToolbars.Toobars;
 
 
 namespace NDToolsBox
@@ -393,7 +394,7 @@ namespace NDToolsBox
                 var person = context.DataContext as PersonViewModel;
                 if (person != null && !person.IsGrouping)
                 {
-                    string data = $"--NDDrop;{person.Name};\r\nfilein @\"{person.Path}\"";
+                    string data = $"--NDDrop;{person.Name};\r\n{toolbarItemViewModle.BuildScriptCommit(person.Path)}";
                     string dataFormat = System.Windows.DataFormats.UnicodeText;
                     System.Windows.DataObject dataObject = new System.Windows.DataObject(dataFormat, data);
                     System.Windows.DragDropEffects dde = DragDrop.DoDragDrop(context, dataObject, System.Windows.DragDropEffects.Copy);

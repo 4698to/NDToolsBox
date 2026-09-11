@@ -512,14 +512,14 @@ namespace NDToolsBox.TextSearch
             {
                 if (File.Exists(item))
                 {
-                    if (System.IO.Path.GetExtension(item).Equals(".ms") || System.IO.Path.GetExtension(item).Equals(".mse"))
+                    string ext = System.IO.Path.GetExtension(item);
+                    if (string.Equals(ext, ".ms", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(ext, ".mse", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(ext, ".py", StringComparison.OrdinalIgnoreCase))
                     {
-                        //Console.WriteLine(item);
                         lists.Add(item);
                     }
-
                 }
-
             }
         }
         /// <summary>
@@ -573,21 +573,21 @@ namespace NDToolsBox.TextSearch
                 }
 
             }
-            //拖拽 ndbox 中的脚本项
+            //拖拽 ndbox 中的脚本项 / 纯文本
             if (e.Data.GetDataPresent(DataFormats.UnicodeText))
             {
                 var str = e.Data.GetData(DataFormats.UnicodeText);
-                if (str != null)
+                if (str != null
+                    && toolbarItemViewModle.TryResolveScriptText((string)str, out string name, out string path, out string commit))
                 {
-                    if (File.Exists((string)str))
+                    if (!string.IsNullOrEmpty(path))
                     {
-                        _itemlist.AddNewFileItem((string)str, item_index);
+                        _itemlist.AddNewFileItem(path, item_index);
                     }
                     else
                     {
-                        _itemlist.AddNewCommitItem((string)str, item_index , ScriptsUtilities.GetNDBoxMxsCommitScriptName((string)str));
+                        _itemlist.AddNewCommitItem(commit, item_index, name);
                     }
-
                 }
             }
         }
@@ -856,22 +856,22 @@ namespace NDToolsBox.TextSearch
                     _itemlist.Set_Items_Margin_Up();
                 }
             }
-            //拖拽 ndbox 中的脚本项
+            //拖拽 ndbox 中的脚本项 / 纯文本
             if (e.Data.GetDataPresent(DataFormats.UnicodeText))
             {
                 var str = e.Data.GetData(DataFormats.UnicodeText);
-                if (str != null)
+                if (str != null
+                    && toolbarItemViewModle.TryResolveScriptText((string)str, out string name, out string path, out string commit))
                 {
-                    if (File.Exists((string)str))
+                    if (!string.IsNullOrEmpty(path))
                     {
-                        _itemlist.AddNewFileItem(_itemlist.SolidItems,(string)str, item_index);
+                        _itemlist.AddNewFileItem(_itemlist.SolidItems, path, item_index);
                     }
                     else
                     {
-                        _itemlist.AddNewCommitItem(_itemlist.SolidItems,(string)str, item_index, ScriptsUtilities.GetNDBoxMxsCommitScriptName((string)str));
+                        _itemlist.AddNewCommitItem(_itemlist.SolidItems, commit, item_index, name);
                     }
                     _itemlist.Set_Items_Margin_Up();
-
                 }
             }
         }

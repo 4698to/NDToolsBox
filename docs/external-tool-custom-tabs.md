@@ -159,7 +159,7 @@ NDToolsBox/
 | 元素 | 说明 |
 |------|------|
 | `Name` | 按钮显示文字 |
-| `Path` | `.ms` / `.mse` 等脚本文件路径；有值时点击 `FileIn` |
+| `Path` | `.ms` / `.mse` / `.py` 等脚本文件路径；有值时按扩展名执行 |
 | `Commit` | MaxScript 字符串；`Path` 为空时点击执行该脚本 |
 | `ToolTip` | 悬停提示；可空（空时界面可能回退为 `Name`） |
 | `Space` | `true` 时在该按钮上方多加一段间隔 |
@@ -216,9 +216,38 @@ XML 字段与配置文件中的按钮字段一致：
 **黏贴**行为：
 
 1. 若剪贴板以 `NDToolsBox.ToolbarItem.v1\n` 开头：反序列化 XML，写入当前选中按钮的 `Name` / `Path` / `Commit` / `ToolTip` / `Space`
-2. 否则按兼容逻辑：
-   - 文本是已存在的文件路径 → 只当作 `Path`（清空 `Commit`），保留原 `Name` / `ToolTip` / `Space`
-   - 其它文本 → 当作 `Commit`，并尽量从脚本注释推导 `Name`（失败则为 `Mxs`），清空 `Path`
+2. 否则按兼容逻辑（与列表拖入 `UnicodeText` 同一套解析）：
+
+| 剪贴板内容 | 结果 |
+|------------|------|
+| 已存在的文件路径（`.ms`/`.mse`/`.py` 等） | `Path` = 路径，`Commit` 按扩展名生成（`.ms`/`.mse` → `filein`；`.py` → `python.ExecuteFile`），保留原 `Name`（若有） |
+| 以 `#NDDrop;显示名;` 或 `--NDPy;显示名;` 开头 | 当作 **Python 源码**：`Name` 取标记中的显示名，正文包装为 `python.Execute "..."` 写入 `Commit`，清空 `Path` |
+| 以 `--NDDrop;显示名;` 开头 | 当作 **MaxScript**：整段写入 `Commit`，`Name` 取标记中的显示名 |
+| 已是 `python.Execute` / `python.ExecuteFile` 开头 | 当作可执行 MaxScript，`Name` 默认 `Py` |
+| 其它纯文本 | 当作 MaxScript `Commit`，`Name` 尽量从 `--NDDrop` 注释推导，失败则为 `Mxs` |
+
+Python 源码黏贴示例：
+
+```text
+#NDDrop;清理场景;
+import pymxs
+print("hello")
+```
+
+或：
+
+```text
+--NDPy;清理场景;
+import pymxs
+print("hello")
+```
+
+MaxScript 黏贴示例（与 NDBox 树拖出格式一致）：
+
+```text
+--NDDrop;我的工具;
+filein @"D:\Scripts\tool.ms"
+```
 
 外部工具若要程序化「粘贴式」写入按钮，可向系统剪贴板放入上述带前缀的文本，再在 Max 内对该按钮执行「黏贴」；更常见做法仍是直接改 `{ListId}.xml`。
 
@@ -234,14 +263,14 @@ XML 字段与配置文件中的按钮字段一致：
 
 | `DataFormats` | 含义 | 拖入后行为 |
 |---------------|------|------------|
-| `FileDrop` | 资源管理器等拖入的文件路径数组 | 仅保留扩展名为 **`.ms`** / **`.mse`** 的文件；每个文件 **新建** 一个按钮，`Path` = 完整路径，`Name` = 无扩展名文件名 |
-| `UnicodeText` | 单段 Unicode 字符串 | 若该字符串是已存在文件路径 → 新建 `Path` 按钮；否则 → 新建 `Commit` 按钮，`Name` 尽量从脚本注释推导（`GetNDBoxMxsCommitScriptName`） |
+| `FileDrop` | 资源管理器等拖入的文件路径数组 | 仅保留扩展名为 **`.ms`** / **`.mse`** / **`.py`** 的文件；每个文件 **新建** 一个按钮，`Path` = 完整路径，`Commit` 按扩展名生成（见下），`Name` = 无扩展名文件名 |
+| `UnicodeText` | 单段 Unicode 字符串 | 与第 5 节黏贴兼容逻辑相同：路径按扩展名建按钮；`#NDDrop`/`--NDPy` 为 Python；`--NDDrop` 及其它为 MaxScript |
 
 `DragEnter`：仅当存在 `FileDrop` 或 `UnicodeText` 时显示 `Copy` 光标，其它格式为 `None`。
 
 ### `FileDrop` 细节
 
-- 过滤在 `GetFiles`：`File.Exists` 且扩展名 **等于** `.ms` 或 `.mse`（大小写敏感比较；建议路径使用小写扩展名）
+- 过滤在 `GetFiles`：`File.Exists` 且扩展名为 **`.ms`** / **`.mse`** / **`.py`**（大小写不敏感）
 - 支持一次拖入多个文件；按数组顺序依次插入
 - 插入位置：落点命中某按钮时，插在该按钮索引处；未命中时按纵向位置估算索引，估失败则 **追加到末尾**（`index = -1`）
 - 若列表中已有相同 `Path` 或相同 `Commit` 文本，则 **跳过**（不重复添加）
@@ -251,7 +280,7 @@ XML 字段与配置文件中的按钮字段一致：
 | 字段 | 值 |
 |------|-----|
 | `Path` | 拖入的绝对路径 |
-| `Commit` | 空 |
+| `Commit` | `.ms`/`.mse` → `filein @"路径"`；`.py` → `python.ExecuteFile @"路径"`（编辑对话框会显示该脚本；保存编辑后以 `Commit` 为准并清空 `Path`） |
 | `Name` | `Path.GetFileNameWithoutExtension` |
 | `ToolTip` | 默认与 `Name` 相同（构造时） |
 | `Space` | `false` |
@@ -261,17 +290,25 @@ XML 字段与配置文件中的按钮字段一致：
 适用于从其它控件 / 工具拖出一段文本（例如 NDBox 脚本树拖出路径或脚本正文）：
 
 ```text
-# 情况 A：磁盘上存在的文件路径
+# 情况 A：磁盘上存在的文件路径（按扩展名区分 ms/mse/py）
 C:\Scripts\my_tool.ms
+C:\Scripts\my_tool.py
 
-# 情况 B：MaxScript 正文（非已存在路径）
-print "hello"
+# 情况 B：MaxScript（--NDDrop 标记，与树拖出一致）
+--NDDrop;我的工具;
+filein @"C:\Scripts\my_tool.ms"
+
+# 情况 C：Python 源码（#NDDrop 或 --NDPy）
+#NDDrop;清理场景;
+import pymxs
+print("hello")
 ```
 
 | 判定 | 结果 |
 |------|------|
-| `File.Exists(text)` 为真 | `AddNewFileItem`：`Path = text` |
-| 否则 | `AddNewCommitItem`：`Commit = text`，`Name` 来自脚本名解析（可空时用默认名） |
+| `File.Exists(text)` 为真 | `AddNewFileItem`：`Path` + 按扩展名生成的 `Commit` |
+| `#NDDrop;名;` / `--NDPy;名;` | `AddNewCommitItem`：正文包装为 `python.Execute "..."` |
+| `--NDDrop;名;` 或其它文本 | `AddNewCommitItem`：整段作为 MaxScript `Commit` |
 
 注意：
 
@@ -280,7 +317,7 @@ print "hello"
 
 ### 外部工具如何拖入
 
-1. **推荐**：用资源管理器或自建拖源提供 `DataFormats.FileDrop`（`.ms` / `.mse`）
+1. **推荐**：用资源管理器或自建拖源提供 `DataFormats.FileDrop`（`.ms` / `.mse` / `.py`）
 2. **文本**：提供 `DataFormats.UnicodeText`，内容为单文件绝对路径，或一段要作为 `Commit` 的 MaxScript
 3. **完整 Name/Commit/ToolTip**：请写 `{ListId}.xml`，或复制完整快照后在列表内「黏贴」，不要依赖拖拽
 
@@ -419,8 +456,8 @@ A: 插件侧读取按 UTF-8。外部工具请写 UTF-8。若看到插件自己�
 **Q: 右键复制后剪贴板里只有脚本 / 路径？**  
 A: 新版本复制的是完整按钮快照（见第 5 节）。若仍只有纯文本，说明 Max 加载的仍是旧 DLL，请更新 `assemblies\NDToolsBox.dll` 后重试。
 
-**Q: 拖入 `.ms` 没反应？**  
-A: 确认格式为 `FileDrop`（不是只含路径的普通文本）、扩展名为 `.ms`/`.mse`，且列表中尚无相同 `Path`。完整按钮字段请用配置文件或第 5 节黏贴，拖拽只建 Path/Commit 按钮（见第 6 节）。
+**Q: 拖入 `.ms` / `.py` 没反应？**  
+A: 确认格式为 `FileDrop`（不是只含路径的普通文本）、扩展名为 `.ms`/`.mse`/`.py`，且列表中尚无相同 `Path`。完整按钮字段请用配置文件或第 5 节黏贴，拖拽只建 Path/Commit 按钮（见第 6 节）。
 
 ---
 
