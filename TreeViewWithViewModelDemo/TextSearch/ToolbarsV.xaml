@@ -37,7 +37,7 @@
         <!-- 定义自定义的 ToggleButton 样式 -->
         <Style x:Key="CustomToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="Foreground" Value="{StaticResource MaxTextColor}" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="20"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -74,7 +74,7 @@
 
         <!--第二排不可编辑按钮-->
         <Style x:Key="BtnStyle" TargetType="Button">
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Height" Value="20"/>
             <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -103,7 +103,7 @@
         <!--第一排可编辑按钮-->
         <Style x:Key="BtnInfoStyle" TargetType="Button">
 
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
 
             <Setter Property="Height" Value="20"/>
             <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
@@ -368,11 +368,14 @@
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <ContentPresenter Content="{TemplateBinding Content}">
-                            <ContentPresenter.LayoutTransform>
-                                <RotateTransform Angle="270" />
-                            </ContentPresenter.LayoutTransform>
-                        </ContentPresenter>
+                        <!-- 竖排正向：窄宽强制逐字换行，避免 Rotate 导致侧躺/颠倒 -->
+                        <TextBlock Text="{Binding}"
+                                   Width="12"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   LineStackingStrategy="BlockLineHeight"
+                                   LineHeight="12"
+                                   FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
@@ -381,7 +384,7 @@
             <Setter Property="Margin" Value="2" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="FontFamily" Value="DokChampa" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Foreground" Value="{StaticResource MaxTextColor}"/>
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="HorizontalAlignment" Value="Right" />
@@ -398,8 +401,8 @@
                 <StackPanel x:Name="dockpanel" Orientation="Vertical" Width="74" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
                     <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True">
                     <!--  -->
-                    <ListBox x:Name="MyListBox" BorderThickness="0" Background="{StaticResource MaxUiBackgroundColor}"  ItemContainerStyle="{StaticResource listBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
-                    FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 0 0"
+                    <ListBox x:Name="MyListBox" BorderThickness="0" Background="{StaticResource MaxUiBackgroundColor}" MinHeight="48" ItemContainerStyle="{StaticResource listBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                    FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 0 0"
                             >
 
                         <ListBox.ItemTemplate>
@@ -427,7 +430,7 @@
                     </Expander>
 
                     <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 ">
-                        <ListBox x:Name="MyItemsControl" BorderThickness="0" ItemContainerStyle="{StaticResource listBoxItemStyle2}" Background="{StaticResource MaxUiBackgroundColor}" ItemsSource="{Binding SolidItems}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="ItemsControl_Drop" DragEnter="MyListBox_DragEnter"  ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
+                        <ListBox x:Name="MyItemsControl" BorderThickness="0" ItemContainerStyle="{StaticResource listBoxItemStyle2}" Background="{StaticResource MaxUiBackgroundColor}" MinHeight="48" ItemsSource="{Binding SolidItems}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="ItemsControl_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <!--<UniformGrid Columns="2" Margin="0 0 0 0" Background="Transparent" HorizontalAlignment="Center" />-->
@@ -493,7 +496,7 @@
 
                 </StackPanel>
             </TabItem>
-            <TabItem x:Name="AddTabItem" Header="+" Width="14" Height="40" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}" ToolTip="新建 Tab"/>
+            <TabItem x:Name="AddTabItem" Header="+" Width="14" Height="40" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}" ToolTip="左键新建 Tab，右键可导入" PreviewMouseLeftButtonDown="AddTabItem_PreviewMouseLeftButtonDown" PreviewMouseRightButtonUp="AddTabItem_PreviewMouseRightButtonUp"/>
         </TabControl>
         <Border BorderThickness="0, 2,0,0" CornerRadius="0" BorderBrush="{StaticResource ButtonColor_A}" Margin="0 10 0 0">
 

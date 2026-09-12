@@ -73,6 +73,9 @@ Copy-Item -Force "G:\ND_openSource\NDToolsBox-3dsMax\Max2022\bin\Debug\NDToolsBo
 说明：
 
 - 点击左侧 `+` 会新建 Tab，并写入 `ToolBarTabs.xml`；该 Tab 的列表首次保存或改动后生成对应 `CustomTab_*.xml`（默认一段 Expander）。
+- 右键 `+` 可选「导入 CustomTab…」：将已有 `{ListId}.xml` **注册**进 `ToolBarTabs.xml`（`ListId` = 文件名）；若文件不在安装目录则复制过去，不会另存成新的 `CustomTab_{guid}`。
+- 自定义 Tab 标题右键：「重命名」「删除」「导出 CustomTab…」。
+- 自定义 Tab 空白区域与按钮均可拖入脚本（`.ms` / `.mse` / `.py`）或 NDBox 文本；空白区追加到当前 Tab 最后一段列表。
 - 自定义 Tab 右键「重命名」只改 `ToolBarTabs.xml` 中的标题；「删除」会从该文件移除条目，并删除该 Tab 的列表 xml。
 - 列表内按钮改名、增删、复制粘贴、设置上下间距、刷新，都作用在整份 `CustomTab_*.xml` 上。
 - 旧版单列表 `NDListBoxViewModle` xml 加载时自动包成一段；旧版三列 `ListIds` 仍迁到单个 `ListId`。

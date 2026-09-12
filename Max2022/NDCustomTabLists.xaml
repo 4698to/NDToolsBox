@@ -3,6 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d">
-    <StackPanel x:Name="RootPanel" Orientation="Vertical"/>
+             mc:Ignorable="d"
+             AllowDrop="True"
+             Background="Transparent"
+             DragEnter="Root_DragEnter"
+             DragOver="Root_DragOver"
+             Drop="Root_Drop">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Background="Transparent" AllowDrop="True"
+                  DragEnter="Root_DragEnter" DragOver="Root_DragOver" Drop="Root_Drop">
+        <StackPanel x:Name="RootPanel" Orientation="Vertical" Background="Transparent"
+                    MinHeight="120" AllowDrop="True"
+                    DragEnter="Root_DragEnter" DragOver="Root_DragOver" Drop="Root_Drop"/>
+    </ScrollViewer>
 </UserControl>

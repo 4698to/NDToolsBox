@@ -90,34 +90,7 @@ namespace NDToolsBox.TextSearch
             _suppressTabSelection = true;
             try
             {
-                _tabsConfig = CfgHelpPersonXml.ReadToolBarTabs(WebAddress.ToolBarTabsConfig);
-                if (_tabsConfig == null)
-                {
-                    _tabsConfig = new ToolBarTabsConfig();
-                }
-                bool migrated = false;
-                foreach (CustomToolbarTab tab in _tabsConfig.Tabs)
-                {
-                    if (tab == null || string.IsNullOrEmpty(tab.Id))
-                    {
-                        continue;
-                    }
-                    string beforeListId = tab.ListId;
-                    tab.Normalize();
-                    if (string.IsNullOrEmpty(tab.Header))
-                    {
-                        tab.Header = "自定义";
-                    }
-                    InsertCustomTabItem(tab, MainTabControl.Items.Count - 1);
-                    if (!string.Equals(beforeListId, tab.ListId, StringComparison.Ordinal))
-                    {
-                        migrated = true;
-                    }
-                }
-                if (migrated)
-                {
-                    SaveTabsConfig();
-                }
+                LoadCustomTabsCore();
             }
             finally
             {
@@ -125,21 +98,102 @@ namespace NDToolsBox.TextSearch
             }
         }
 
+        private void LoadCustomTabsCore()
+        {
+            _tabsConfig = CfgHelpPersonXml.ReadToolBarTabs(WebAddress.ToolBarTabsConfig);
+            if (_tabsConfig == null)
+            {
+                _tabsConfig = new ToolBarTabsConfig();
+            }
+            bool migrated = false;
+            foreach (CustomToolbarTab tab in _tabsConfig.Tabs)
+            {
+                if (tab == null || string.IsNullOrEmpty(tab.Id))
+                {
+                    continue;
+                }
+                string beforeListId = tab.ListId;
+                tab.Normalize();
+                if (string.IsNullOrEmpty(tab.Header))
+                {
+                    tab.Header = "自定义";
+                }
+                InsertCustomTabItem(tab, MainTabControl.Items.Count - 1);
+                if (!string.Equals(beforeListId, tab.ListId, StringComparison.Ordinal))
+                {
+                    migrated = true;
+                }
+            }
+            if (migrated)
+            {
+                SaveTabsConfig();
+            }
+        }
+
+        /// <summary>
+        /// 清空已有自定义 Tab 后从 ToolBarTabs.xml 重新加载；返回匹配 listId 的 TabItem（可空）。
+        /// </summary>
+        private TabItem ReloadCustomTabs(string selectListId = null)
+        {
+            _suppressTabSelection = true;
+            TabItem selected = null;
+            try
+            {
+                // 只移除自定义 Tab（Tag 为 CustomToolbarTab），保留「动画」「绑定」「+」等内置页
+                for (int i = MainTabControl.Items.Count - 1; i >= 0; i--)
+                {
+                    var item = MainTabControl.Items[i] as TabItem;
+                    if (item != null && item.Tag is CustomToolbarTab)
+                    {
+                        MainTabControl.Items.RemoveAt(i);
+                    }
+                }
+
+                LoadCustomTabsCore();
+
+                if (!string.IsNullOrEmpty(selectListId))
+                {
+                    foreach (TabItem item in MainTabControl.Items)
+                    {
+                        var data = item != null ? item.Tag as CustomToolbarTab : null;
+                        if (data != null &&
+                            string.Equals(data.ListId, selectListId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            selected = item;
+                            MainTabControl.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _suppressTabSelection = false;
+            }
+            return selected;
+        }
+
         private TabItem InsertCustomTabItem(CustomToolbarTab tabData, int insertIndex)
         {
-            var panel = new StackPanel
+            var panel = new Grid
             {
-                Orientation = Orientation.Vertical,
                 Width = 74,
-                Background = (Brush)FindResource("MaxUiBackgroundColor")
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                AllowDrop = true,
+                MinHeight = 120
             };
             panel.GotKeyboardFocus += dockpanel_GotKeyboardFocus;
             panel.LostKeyboardFocus += dockpanel_LostKeyboardFocus;
             panel.IsEnabledChanged += dockpanel_IsEnabledChanged;
+            panel.DragEnter += CustomTabPanel_DragEnter;
+            panel.DragOver += CustomTabPanel_DragOver;
+            panel.Drop += CustomTabPanel_Drop;
 
             tabData.Normalize();
             var lists = new NDCustomTabLists();
             lists.InitWithSaveName(tabData.ListId);
+            lists.HorizontalAlignment = HorizontalAlignment.Stretch;
+            lists.VerticalAlignment = VerticalAlignment.Stretch;
             // 旧 ListId（*_1）合并迁移后，同步为统一文件名（无 _1 后缀）
             if (lists.TabLists != null && !string.IsNullOrEmpty(lists.TabLists.SavePath))
             {
@@ -180,6 +234,30 @@ namespace NDToolsBox.TextSearch
             return tabItem;
         }
 
+        private void CustomTabPanel_DragEnter(object sender, DragEventArgs e)
+        {
+            SetToolbarDropEffects(e);
+        }
+
+        private void CustomTabPanel_DragOver(object sender, DragEventArgs e)
+        {
+            SetToolbarDropEffects(e);
+        }
+
+        private void CustomTabPanel_Drop(object sender, DragEventArgs e)
+        {
+            var panel = sender as Panel;
+            if (panel == null || panel.Children.Count == 0)
+            {
+                return;
+            }
+            var lists = panel.Children[0] as NDCustomTabLists;
+            if (lists != null)
+            {
+                lists.AcceptDrop(e);
+            }
+        }
+
         private ContextMenu CreateCustomTabContextMenu(TabItem tabItem)
         {
             var menu = new ContextMenu
@@ -201,8 +279,17 @@ namespace NDToolsBox.TextSearch
                 BorderThickness = new Thickness(0)
             };
             delete.Click += (s, e) => DeleteCustomTab(tabItem);
+            var export = new System.Windows.Controls.MenuItem
+            {
+                Header = "导出 CustomTab…",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            export.Click += (s, e) => ExportCustomTab(tabItem);
             menu.Items.Add(rename);
             menu.Items.Add(delete);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(export);
             return menu;
         }
 
@@ -268,11 +355,64 @@ namespace NDToolsBox.TextSearch
             {
                 return;
             }
-            if (!ReferenceEquals(MainTabControl.SelectedItem, AddTabItem))
+            // 「+」仅作入口，不允许保持选中；真正新建走左键 Preview
+            if (ReferenceEquals(MainTabControl.SelectedItem, AddTabItem))
             {
-                return;
+                _suppressTabSelection = true;
+                try
+                {
+                    if (MainTabControl.Items.Count > 1)
+                    {
+                        MainTabControl.SelectedIndex = Math.Max(0, MainTabControl.Items.Count - 2);
+                    }
+                }
+                finally
+                {
+                    _suppressTabSelection = false;
+                }
             }
+        }
 
+        private void AddTabItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+            CreateNewCustomTab();
+        }
+
+        private void AddTabItem_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+            var menu = new ContextMenu
+            {
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                Foreground = (Brush)FindResource("MaxTextColor")
+            };
+            var create = new System.Windows.Controls.MenuItem
+            {
+                Header = "新建 Tab",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            create.Click += (s, args) => CreateNewCustomTab();
+            var import = new System.Windows.Controls.MenuItem
+            {
+                Header = "导入 CustomTab…",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            import.Click += (s, args) => ImportCustomTabFromFile();
+            menu.Items.Add(create);
+            menu.Items.Add(import);
+            menu.PlacementTarget = AddTabItem;
+            menu.IsOpen = true;
+        }
+
+        private void CreateNewCustomTab()
+        {
+            if (_tabsConfig == null)
+            {
+                _tabsConfig = new ToolBarTabsConfig();
+            }
             _suppressTabSelection = true;
             try
             {
@@ -291,6 +431,191 @@ namespace NDToolsBox.TextSearch
             finally
             {
                 _suppressTabSelection = false;
+            }
+        }
+
+        /// <summary>
+        /// 导入 CustomTab：先校验 xml 合法，再注册 ToolBarTabs，最后整表重新加载并选中。
+        /// ListId = 文件名；文件不在安装目录时按原名复制过去。
+        /// </summary>
+        private void ImportCustomTabFromFile()
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "导入 CustomTab",
+                Filter = "CustomTab XML (*.xml)|*.xml|All files (*.*)|*.*",
+                CheckFileExists = true,
+                InitialDirectory = WebAddress.apppath
+            };
+            if (dlg.ShowDialog() != true)
+            {
+                return;
+            }
+
+            string srcPath = dlg.FileName;
+            string listId = System.IO.Path.GetFileNameWithoutExtension(srcPath);
+            string validateError;
+            CustomTabListsViewModle loaded =
+                CustomTabListsViewModle.TryValidateAndLoadForImport(srcPath, out validateError);
+            if (loaded == null)
+            {
+                System.Windows.MessageBox.Show(
+                    "CustomTab XML 不合法，未注册。\n" + (validateError ?? "未知错误"),
+                    "导入 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_tabsConfig == null)
+            {
+                _tabsConfig = new ToolBarTabsConfig();
+            }
+            if (_tabsConfig.Tabs == null)
+            {
+                _tabsConfig.Tabs = new System.Collections.Generic.List<CustomToolbarTab>();
+            }
+
+            // 已注册：仍重新加载并选中，保证 UI 与磁盘一致
+            CustomToolbarTab already = null;
+            for (int i = 0; i < _tabsConfig.Tabs.Count; i++)
+            {
+                CustomToolbarTab t = _tabsConfig.Tabs[i];
+                if (t != null && string.Equals(t.ListId, listId, StringComparison.OrdinalIgnoreCase))
+                {
+                    already = t;
+                    break;
+                }
+            }
+            if (already != null)
+            {
+                EnsureListXmlInAppPath(srcPath, listId);
+                ReloadCustomTabs(listId);
+                System.Windows.MessageBox.Show(
+                    "该 CustomTab 已在 ToolBarTabs 中注册，已重新加载。",
+                    "导入 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            if (!EnsureListXmlInAppPath(srcPath, listId))
+            {
+                return;
+            }
+
+            // 再校验安装目录中的最终文件（复制后）
+            string destPath = System.IO.Path.Combine(WebAddress.apppath, listId + ".xml");
+            string destError;
+            if (CustomTabListsViewModle.TryValidateAndLoadForImport(destPath, out destError) == null)
+            {
+                System.Windows.MessageBox.Show(
+                    "安装目录中的列表文件校验失败，未注册。\n" + (destError ?? "未知错误"),
+                    "导入 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            string header = UiPrompt.PromptText("导入 CustomTab", "Tab 显示名称：", listId);
+            if (string.IsNullOrWhiteSpace(header))
+            {
+                return;
+            }
+            header = header.Trim();
+
+            var tabData = new CustomToolbarTab
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Header = header,
+                ListId = listId
+            };
+            _tabsConfig.Tabs.Add(tabData);
+            SaveTabsConfig();
+
+            ReloadCustomTabs(listId);
+        }
+
+        /// <summary>
+        /// 若源文件不在安装目录，复制为 {apppath}\{listId}.xml。失败弹窗并返回 false。
+        /// </summary>
+        private bool EnsureListXmlInAppPath(string srcPath, string listId)
+        {
+            string destPath = System.IO.Path.Combine(WebAddress.apppath, listId + ".xml");
+            string apppathFull = System.IO.Path.GetFullPath(WebAddress.apppath)
+                .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            string srcDirFull = System.IO.Path.GetFullPath(System.IO.Path.GetDirectoryName(srcPath) ?? string.Empty)
+                .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            if (string.Equals(srcDirFull, apppathFull, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            try
+            {
+                if (!Directory.Exists(WebAddress.apppath))
+                {
+                    Directory.CreateDirectory(WebAddress.apppath);
+                }
+                File.Copy(srcPath, destPath, true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    "复制到安装目录失败：\n" + ex.Message,
+                    "导入 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        private void ExportCustomTab(TabItem tabItem)
+        {
+            if (tabItem == null)
+            {
+                return;
+            }
+            var tabData = tabItem.Tag as CustomToolbarTab;
+            if (tabData == null)
+            {
+                return;
+            }
+            tabData.Normalize();
+            string srcPath = System.IO.Path.Combine(WebAddress.apppath, tabData.ListId + ".xml");
+            if (!File.Exists(srcPath))
+            {
+                System.Windows.MessageBox.Show(
+                    "未找到列表配置：\n" + srcPath,
+                    "导出 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "导出 CustomTab",
+                Filter = "CustomTab XML (*.xml)|*.xml",
+                FileName = tabData.ListId + ".xml",
+                AddExtension = true,
+                DefaultExt = ".xml"
+            };
+            if (dlg.ShowDialog() != true)
+            {
+                return;
+            }
+            try
+            {
+                File.Copy(srcPath, dlg.FileName, true);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    "导出失败：\n" + ex.Message,
+                    "导出 CustomTab",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -463,8 +788,22 @@ namespace NDToolsBox.TextSearch
         }
         private void MyListBox_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.UnicodeText)||(e.Data.GetDataPresent(DataFormats.FileDrop)))
-            //if (e.Data.GetDataPresent(DataFormats.UnicodeText))
+            SetToolbarDropEffects(e);
+        }
+
+        private void MyListBox_DragOver(object sender, DragEventArgs e)
+        {
+            SetToolbarDropEffects(e);
+        }
+
+        private static void SetToolbarDropEffects(DragEventArgs e)
+        {
+            if (e == null)
+            {
+                return;
+            }
+            if (e.Data != null &&
+                (e.Data.GetDataPresent(DataFormats.UnicodeText) || e.Data.GetDataPresent(DataFormats.FileDrop)))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -472,9 +811,7 @@ namespace NDToolsBox.TextSearch
             {
                 e.Effects = DragDropEffects.None;
             }
-
-            //e.Handled = true;
-
+            e.Handled = true;
         }
         private int HitListBox(Point pos)
         {

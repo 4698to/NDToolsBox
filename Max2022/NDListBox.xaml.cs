@@ -100,8 +100,22 @@ namespace NDToolsBox
         }
         private void MyListBox_DragEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.UnicodeText) || (e.Data.GetDataPresent(DataFormats.FileDrop)))
-            //if (e.Data.GetDataPresent(DataFormats.UnicodeText))
+            SetDropEffects(e);
+        }
+
+        private void MyListBox_DragOver(object sender, DragEventArgs e)
+        {
+            SetDropEffects(e);
+        }
+
+        private static void SetDropEffects(DragEventArgs e)
+        {
+            if (e == null)
+            {
+                return;
+            }
+            if (e.Data != null &&
+                (e.Data.GetDataPresent(DataFormats.UnicodeText) || e.Data.GetDataPresent(DataFormats.FileDrop)))
             {
                 e.Effects = DragDropEffects.Copy;
             }
@@ -109,10 +123,9 @@ namespace NDToolsBox
             {
                 e.Effects = DragDropEffects.None;
             }
-
-            //e.Handled = true;
-
+            e.Handled = true;
         }
+
         private void MyListBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
 
@@ -147,68 +160,68 @@ namespace NDToolsBox
             {
                 if (File.Exists(item))
                 {
-                    if (System.IO.Path.GetExtension(item).Equals(".ms") || System.IO.Path.GetExtension(item).Equals(".mse"))
+                    string ext = System.IO.Path.GetExtension(item);
+                    if (string.Equals(ext, ".ms", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(ext, ".mse", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(ext, ".py", StringComparison.OrdinalIgnoreCase))
                     {
-                        //Console.WriteLine(item);
                         lists.Add(item);
                     }
-
                 }
-
             }
         }
+
         /// <summary>
-        /// 拖拽过来事件
+        /// 供 Tab 空白区等父级转发拖放；insertIndex 有值时直接使用（&lt;0 追加末尾），否则按落点推算。
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void MyListBox_Drop(object sender, DragEventArgs e)
+        public void AcceptDrop(DragEventArgs e, int? insertIndex = null)
         {
+            if (e == null || _itemlist == null)
+            {
+                return;
+            }
 
-            Point pos = e.GetPosition((UIElement)sender);
+            int item_index;
+            if (insertIndex.HasValue)
+            {
+                item_index = insertIndex.Value;
+            }
+            else
+            {
+                Point pos = e.GetPosition(MyListBox);
+                item_index = HitListBox(pos);
+                if (item_index < 0)
+                {
+                    item_index = (int)(pos.Y / (list_box_item_height + 2.0f));
+                    if (item_index > _itemlist.Items.Count)
+                    {
+                        item_index = -1;
+                    }
+                }
+            }
 
-
-            int item_index = this.HitListBox(pos);
-            ScriptsUtilities.print(item_index.ToString());
-
-            //拖拽脚本文件
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 List<string> script_file = new List<string>();
-                this.GetFiles(ref script_file, files);
-                ScriptsUtilities.print(script_file.Count.ToString());
+                GetFiles(ref script_file, files);
 
                 if (item_index >= 0)
                 {
                     for (int i = 0; i < script_file.Count; i++)
                     {
-
                         _itemlist.AddNewFileItem(script_file[i], item_index + i);
                     }
                 }
                 else
                 {
-                    item_index = (int)(pos.Y / (list_box_item_height + 2.0f));
-                    if (item_index <= _itemlist.Items.Count)
+                    for (int i = 0; i < script_file.Count; i++)
                     {
-                        for (int i = 0; i < script_file.Count; i++)
-                        {
-                            _itemlist.AddNewFileItem(script_file[i], item_index + i);
-                        }
+                        _itemlist.AddNewFileItem(script_file[i], -1);
                     }
-                    else
-                    {
-                        for (int i = 0; i < script_file.Count; i++)
-                        {
-                            _itemlist.AddNewFileItem(script_file[i], -1);
-                        }
-                    }
-
                 }
-
             }
-            //拖拽 ndbox 中的脚本项
+
             if (e.Data.GetDataPresent(DataFormats.UnicodeText))
             {
                 var str = e.Data.GetData(DataFormats.UnicodeText);
@@ -222,9 +235,24 @@ namespace NDToolsBox
                     {
                         _itemlist.AddNewCommitItem((string)str, item_index, ScriptsUtilities.GetNDBoxMxsCommitScriptName((string)str));
                     }
-
                 }
             }
+
+            if (_itemlist.OwnerTab != null)
+            {
+                try { _itemlist.OwnerTab.SaveToXml(); } catch { }
+            }
+            else if (_itemlist.GSaveItemCommand != null)
+            {
+                try { _itemlist.GSaveItemCommand.Execute(null); } catch { }
+            }
+
+            e.Handled = true;
+        }
+
+        private void MyListBox_Drop(object sender, DragEventArgs e)
+        {
+            AcceptDrop(e, null);
         }
         private T FindAncestor<T>(DependencyObject current) where T : DependencyObject
         {
@@ -596,6 +624,118 @@ namespace NDToolsBox
         }
 
         /// <summary>
+        /// 导入用：只加载已有文件，失败返回 null（不会 CreateDefault）。
+        /// </summary>
+        public static CustomTabListsViewModle TryLoadForImport(string path)
+        {
+            string error;
+            return TryValidateAndLoadForImport(path, out error);
+        }
+
+        /// <summary>
+        /// 校验并加载 CustomTab 列表 xml；不合法时返回 null，error 为原因。
+        /// 合法根：CustomTabListsViewModle（多段）或 NDListBoxViewModle（单/多段 Items）。
+        /// </summary>
+        public static CustomTabListsViewModle TryValidateAndLoadForImport(string path, out string error)
+        {
+            error = null;
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                error = "文件不存在。";
+                return null;
+            }
+
+            string listId = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (string.IsNullOrWhiteSpace(listId))
+            {
+                error = "无效的文件名。";
+                return null;
+            }
+            char[] invalid = System.IO.Path.GetInvalidFileNameChars();
+            if (listId.IndexOfAny(invalid) >= 0)
+            {
+                error = "文件名含非法字符，不能作为 ListId。";
+                return null;
+            }
+
+            string rootName = null;
+            try
+            {
+                string xmltext = ReadAllTextDetectEncoding(path);
+                XDocument doc = XDocument.Parse(xmltext);
+                if (doc.Root == null)
+                {
+                    error = "XML 无根节点。";
+                    return null;
+                }
+                rootName = doc.Root.Name.LocalName;
+            }
+            catch (Exception ex)
+            {
+                error = "XML 解析失败：" + ex.Message;
+                return null;
+            }
+
+            if (rootName != "CustomTabListsViewModle" && rootName != "NDListBoxViewModle")
+            {
+                error = "根节点必须是 CustomTabListsViewModle 或 NDListBoxViewModle，当前为「" + rootName + "」。";
+                return null;
+            }
+
+            CustomTabListsViewModle loaded = null;
+            try
+            {
+                string unifiedPath = GetUnifiedListPath(path);
+                loaded = TryLoadMultiFile(unifiedPath);
+                if (loaded == null && !string.Equals(unifiedPath, path, StringComparison.OrdinalIgnoreCase))
+                {
+                    loaded = TryLoadMultiFile(path);
+                }
+                if (loaded == null)
+                {
+                    loaded = TryLoadLegacyColumnFiles(path);
+                }
+                if (loaded == null)
+                {
+                    loaded = TryLoadNdListBoxMultipleItemsGroups(path);
+                }
+                if (loaded == null)
+                {
+                    loaded = TryLoadSingleAsOneSection(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                error = "反序列化失败：" + ex.Message;
+                return null;
+            }
+
+            if (loaded == null || loaded.Items == null || loaded.Items.Count == 0)
+            {
+                error = "未能解析出任何列表段（Items）。";
+                return null;
+            }
+
+            // 至少有一段含可识别的按钮列表结构（允许空列表，但不允许段本身无效）
+            bool anySection = false;
+            foreach (NDListBoxViewModle section in loaded.Items)
+            {
+                if (section != null)
+                {
+                    anySection = true;
+                    break;
+                }
+            }
+            if (!anySection)
+            {
+                error = "列表段全部无效。";
+                return null;
+            }
+
+            return loaded;
+        }
+
+        /// <summary>
         /// 加载自定义 Tab 配置；兼容：
         /// - CustomTabListsViewModle（多段 Expander）
         /// - 旧版单列表 NDListBoxViewModle
@@ -609,45 +749,15 @@ namespace NDToolsBox
                 return CreateDefault(savePath);
             }
 
-            string unifiedPath = GetUnifiedListPath(savePath);
-
-            CustomTabListsViewModle loaded = TryLoadMultiFile(unifiedPath);
-            if (loaded != null)
-            {
-                return loaded;
-            }
-            if (!string.Equals(unifiedPath, savePath, StringComparison.OrdinalIgnoreCase))
-            {
-                loaded = TryLoadMultiFile(savePath);
-                if (loaded != null)
-                {
-                    return loaded;
-                }
-            }
-
-            // 旧三列 _1/_2/_3 并存时优先合并
-            loaded = TryLoadLegacyColumnFiles(savePath);
+            string error;
+            CustomTabListsViewModle loaded = TryValidateAndLoadForImport(savePath, out error);
             if (loaded != null)
             {
                 return loaded;
             }
 
-            if (File.Exists(savePath))
-            {
-                loaded = TryLoadNdListBoxMultipleItemsGroups(savePath);
-                if (loaded != null)
-                {
-                    return loaded;
-                }
-
-                loaded = TryLoadSingleAsOneSection(savePath);
-                if (loaded != null)
-                {
-                    return loaded;
-                }
-            }
-
-            return CreateDefault(unifiedPath);
+            // 文件不存在时仍 CreateDefault；已有文件但不合法则也回退默认（与旧行为一致）
+            return CreateDefault(GetUnifiedListPath(savePath));
         }
 
         /// <summary>CustomTab_xxx_1.xml → CustomTab_xxx.xml</summary>
