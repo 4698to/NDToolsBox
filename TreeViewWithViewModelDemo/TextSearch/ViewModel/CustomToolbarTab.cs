@@ -20,6 +20,11 @@ namespace NDToolsBox
         public string ListId { get; set; }
 
         /// <summary>
+        /// 本 Tab 栏宽分档：0 默认单列，1 一列宽，2 双列（见 ToolbarWidthTier）。
+        /// </summary>
+        public int WidthTier { get; set; }
+
+        /// <summary>
         /// 旧版三列 ListIds，仅用于反序列化兼容；保存时不再写出。
         /// </summary>
         [XmlArray("ListIds")]

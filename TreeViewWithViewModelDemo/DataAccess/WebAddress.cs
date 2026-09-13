@@ -50,6 +50,7 @@ namespace NDToolsBox
 
         public static string ToolBarItemConfig = $@"{apppath}\ToolBar.xml";
         public static string ToolBarTabsConfig = $@"{apppath}\ToolBarTabs.xml";
+        public static string ToolBarWidthTierConfig = $@"{apppath}\ToolBarWidthTier.txt";
         public static bool pingServer()
         {
             using (Ping pingsender = new Ping())

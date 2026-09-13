@@ -8,6 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -24,11 +25,65 @@ using NDToolsBox;
 using System.Collections.ObjectModel;
 namespace NDToolsBox.TextSearch
 {
+    
+    /// <summary>侧边工具栏宽度分档。</summary>
+    public enum ToolbarWidthTier
+    {
+        /// <summary>默认窄栏：单列，按钮约 64。</summary>
+        Default = 0,
+        /// <summary>单列加宽：按钮最宽 OneColumnButtonMaxWidth。</summary>
+        OneColumnWide = 1,
+        /// <summary>双列：两列约 64 宽按钮。</summary>
+        TwoColumn = 2
+    }
+
     /// <summary>
     /// ToolbarsV.xaml 的交互逻辑
     /// </summary>
     public partial class ToolbarsV : UserControl
     {
+        /// <summary>
+        /// 「1 列宽」档：单个脚本按钮的最大宽度（像素）。
+        /// 内容区更宽时按钮不再继续拉长，避免单列按钮过扁。
+        /// </summary>
+        private const double OneColumnButtonMaxWidth = 250;
+
+        /// <summary>
+        /// 侧边栏停靠宽度上限（像素）。
+        /// 作用于本控件与宿主窗口的 MaxWidth；用户用分隔条拉宽时不会超过此值。
+        /// </summary>
+        private const double DockConstraintsPanelMax = 280;
+
+        /// <summary>
+        /// 「默认」档停靠最小宽度（像素）：单列窄栏。
+        /// 切换到该档时写入 MinWidth，并可作为强制收窄时的目标宽度。
+        /// </summary>
+        private const double DockConstraintsPanelMinDefault = 96;
+
+        /// <summary>
+        /// 「1 列宽」档停靠最小宽度（像素）：单列加宽，容纳更宽按钮（见 OneColumnButtonMaxWidth）。
+        /// </summary>
+        private const double DockConstraintsPanelMinOneColumnWide = 96;
+
+        /// <summary>
+        /// 「2 列」档停靠最小宽度（像素）：双列按钮并排所需的最小栏宽。
+        /// </summary>
+        private const double DockConstraintsPanelMinTwoColumn = 168;
+
+        public static readonly DependencyProperty ScriptButtonWidthProperty =
+            DependencyProperty.Register(
+                "ScriptButtonWidth",
+                typeof(double),
+                typeof(ToolbarsV),
+                new FrameworkPropertyMetadata(64.0));
+
+        /// <summary>脚本列表按钮宽度（随宽度分档变化）。</summary>
+        public double ScriptButtonWidth
+        {
+            get { return (double)GetValue(ScriptButtonWidthProperty); }
+            set { SetValue(ScriptButtonWidthProperty, value); }
+        }
+
         private toolbarsViewModle _itemlist;
         private object draggedItem;
         private int insertionIndex;
@@ -40,6 +95,31 @@ namespace NDToolsBox.TextSearch
 
         private ToolBarTabsConfig _tabsConfig;
         private bool _suppressTabSelection;
+        private const string BuiltinAnimKey = "anim";
+        private const string BuiltinRigKey = "rig";
+        private const string TabWidthKeyResource = "TabWidthKey";
+        /// <summary>列表相对内容面板的左边距（与动画 Tab 一致）。</summary>
+        private const double ContentLeftInset = 2;
+        /// <summary>列表相对内容面板的右边距（与动画 Tab ListBox Margin 右 2 一致）。</summary>
+        private const double ContentRightInset = 2;
+        /// <summary>内容面板相对左侧 Tab 条的外边距；右侧不加，与动画 Tab dockpanel Margin=8,0,0,0 一致。</summary>
+        private const double PanelLeftGutter = 8;
+        /// <summary>左侧竖排 Tab 条大约占用宽度（用于回退测量）。</summary>
+        private const double TabStripApproxWidth = 24;
+        /// <summary>窄按钮列表（SolidItems）最多列数。</summary>
+        private const int SolidItemsMaxColumns = 4;
+        /// <summary>窄按钮单格最小宽度，用于按可用宽度推算列数。</summary>
+        private const double SolidItemsMinCellWidth = 32;
+        /// <summary>内置 Tab（动画/绑定）的栏宽分档；自定义 Tab 存在 CustomToolbarTab.WidthTier。</summary>
+        private readonly Dictionary<string, ToolbarWidthTier> _builtinWidthTiers =
+            new Dictionary<string, ToolbarWidthTier>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>侧栏内容区上次有效宽度（切 Tab 首帧 ActualWidth 常未就绪时作回退）。</summary>
+        private double _lastContentWidth;
+        /// <summary>合并同一帧内多次 Schedule，避免拖拽改宽时连刷。</summary>
+        private int _layoutRefreshGeneration;
+        private double _lastAppliedAvail = -1;
+        private ToolbarWidthTier _lastAppliedSelectedTier;
+        private TabItem _lastAppliedSelectedTab;
 
         public ToolbarsV()
         {
@@ -83,6 +163,74 @@ namespace NDToolsBox.TextSearch
             this.Unloaded += ToolbarsV_Unloaded;
 
             LoadCustomTabs();
+            LoadBuiltinWidthTiers();
+            AttachBuiltinTabHeaderMenus();
+            ApplyDockConstraints(GetWidthTier(GetSelectedContentTab()), forceHostWidth: false);
+            ScheduleRefreshScriptButtonLayout();
+            Loaded += ToolbarsV_Loaded;
+            // 只监听控件自身宽度；勿再挂 dock/rig SizeChanged，否则一次拖拽会触发多次全量刷新
+            SizeChanged += ToolbarsV_SizeChanged;
+        }
+
+        private void ToolbarsV_Loaded(object sender, RoutedEventArgs e)
+        {
+            EnsureTabStripAboveContent();
+            ScheduleRefreshScriptButtonLayout();
+        }
+
+        /// <summary>
+        /// Tab 头负边距会伸进内容列；把 HeaderPanel 提到内容之上，避免 Tab 被盖住。
+        /// </summary>
+        private void EnsureTabStripAboveContent()
+        {
+            if (MainTabControl == null)
+            {
+                return;
+            }
+            FrameworkElement header = FindNamedDescendant(MainTabControl, "HeaderPanel");
+            if (header != null)
+            {
+                Panel.SetZIndex(header, 10);
+            }
+            FrameworkElement content = FindNamedDescendant(MainTabControl, "ContentPanel");
+            if (content != null)
+            {
+                Panel.SetZIndex(content, 0);
+                content.ClipToBounds = true;
+            }
+        }
+
+        private static FrameworkElement FindNamedDescendant(DependencyObject parent, string name)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+            int n = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < n; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                var fe = child as FrameworkElement;
+                if (fe != null && string.Equals(fe.Name, name, StringComparison.Ordinal))
+                {
+                    return fe;
+                }
+                FrameworkElement nested = FindNamedDescendant(child, name);
+                if (nested != null)
+                {
+                    return nested;
+                }
+            }
+            return null;
+        }
+
+        private void ToolbarsV_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged)
+            {
+                // 拖拽改宽：只排队延迟刷新，避免每像素同步全量遍历
+                ScheduleRefreshScriptButtonLayout(immediate: false);
+            }
         }
 
         private void LoadCustomTabs()
@@ -177,7 +325,10 @@ namespace NDToolsBox.TextSearch
         {
             var panel = new Grid
             {
-                Width = 74,
+                MinWidth = 74,
+                Margin = new Thickness(PanelLeftGutter, 0, 0, 0),
+                ClipToBounds = true,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Background = (Brush)FindResource("MaxUiBackgroundColor"),
                 AllowDrop = true,
                 MinHeight = 120
@@ -216,7 +367,8 @@ namespace NDToolsBox.TextSearch
                 Style = (Style)FindResource("TabItemStyle"),
                 Background = (Brush)FindResource("ButtonColor_B"),
                 Content = panel,
-                Tag = tabData
+                Tag = tabData,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch
             };
             // 不要设 tabItem.ContextMenu：Content 是 TabItem 逻辑子级，右键列表时会弹出 Tab 的「重命名/删除」而不是完整 dynamicContextMenu
             ContextMenu headerMenu = CreateCustomTabContextMenu(tabItem);
@@ -231,6 +383,8 @@ namespace NDToolsBox.TextSearch
             {
                 MainTabControl.Items.Insert(insertIndex, tabItem);
             }
+            Dispatcher.BeginInvoke(new Action(() => ScheduleRefreshScriptButtonLayout(immediate: true)),
+                System.Windows.Threading.DispatcherPriority.Loaded);
             return tabItem;
         }
 
@@ -255,6 +409,54 @@ namespace NDToolsBox.TextSearch
             if (lists != null)
             {
                 lists.AcceptDrop(e);
+            }
+        }
+
+        /// <summary>
+        /// 内置 Tab（动画/绑定）标题右键：仅「栏宽」。自定义 Tab 在 Insert 时已挂完整菜单。
+        /// </summary>
+        private void AttachBuiltinTabHeaderMenus()
+        {
+            if (MainTabControl == null)
+            {
+                return;
+            }
+            foreach (var obj in MainTabControl.Items)
+            {
+                var tabItem = obj as TabItem;
+                if (tabItem == null || ReferenceEquals(tabItem, AddTabItem))
+                {
+                    continue;
+                }
+                if (tabItem.Tag is CustomToolbarTab)
+                {
+                    continue;
+                }
+                if (tabItem.Resources.Contains("customTabHeaderContextMenu"))
+                {
+                    continue;
+                }
+                string key = null;
+                if (ReferenceEquals(tabItem.Content, dockpanel))
+                {
+                    key = BuiltinAnimKey;
+                }
+                else if (ReferenceEquals(tabItem.Content, rig_dockpanel))
+                {
+                    key = BuiltinRigKey;
+                }
+                if (key != null)
+                {
+                    tabItem.Resources[TabWidthKeyResource] = key;
+                }
+                var menu = new ContextMenu
+                {
+                    Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                    Foreground = (Brush)FindResource("MaxTextColor")
+                };
+                menu.Items.Add(CreateWidthTierSubMenu(tabItem));
+                tabItem.Resources["customTabHeaderContextMenu"] = menu;
+                tabItem.PreviewMouseRightButtonUp += CustomTabItem_PreviewMouseRightButtonUp;
             }
         }
 
@@ -290,6 +492,8 @@ namespace NDToolsBox.TextSearch
             menu.Items.Add(delete);
             menu.Items.Add(new Separator());
             menu.Items.Add(export);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(CreateWidthTierSubMenu(tabItem));
             return menu;
         }
 
@@ -371,6 +575,43 @@ namespace NDToolsBox.TextSearch
                     _suppressTabSelection = false;
                 }
             }
+
+            TabItem selected = GetSelectedContentTab();
+            if (selected != null)
+            {
+                ApplyDockConstraints(GetWidthTier(selected), forceHostWidth: false);
+                // 切 Tab：先刷一次（可用缓存宽），再延迟刷真实 Arrange 结果
+                ScheduleRefreshScriptButtonLayout(immediate: true);
+            }
+        }
+
+        /// <summary>
+        /// 合并刷新：同一轮拖拽/连点只保留最新一次延迟回调，避免 Loaded+Idle 叠成 3N 次全量布局。
+        /// </summary>
+        /// <param name="immediate">true=同步先刷（切 Tab）；false=仅延迟（拖拽改宽）。</param>
+        private void ScheduleRefreshScriptButtonLayout(bool immediate = true)
+        {
+            int gen = ++_layoutRefreshGeneration;
+            if (immediate)
+            {
+                RefreshScriptButtonLayout();
+            }
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (gen != _layoutRefreshGeneration)
+                {
+                    return;
+                }
+                RefreshScriptButtonLayout();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (gen != _layoutRefreshGeneration)
+                {
+                    return;
+                }
+                RefreshScriptButtonLayout();
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
         private void AddTabItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -401,10 +642,743 @@ namespace NDToolsBox.TextSearch
                 BorderThickness = new Thickness(0)
             };
             import.Click += (s, args) => ImportCustomTabFromFile();
+
             menu.Items.Add(create);
             menu.Items.Add(import);
+            menu.Items.Add(new Separator());
+            // 「+」上的栏宽作用于当前选中的内容 Tab
+            menu.Items.Add(CreateWidthTierSubMenu(null));
             menu.PlacementTarget = AddTabItem;
             menu.IsOpen = true;
+        }
+
+        private TabItem GetSelectedContentTab()
+        {
+            if (MainTabControl == null)
+            {
+                return null;
+            }
+            var sel = MainTabControl.SelectedItem as TabItem;
+            if (sel == null || ReferenceEquals(sel, AddTabItem))
+            {
+                return null;
+            }
+            return sel;
+        }
+
+        private System.Windows.Controls.MenuItem CreateWidthTierSubMenu(TabItem targetTab)
+        {
+            var widthMenu = new System.Windows.Controls.MenuItem
+            {
+                Header = "栏宽",
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            widthMenu.SubmenuOpened += (s, e) =>
+                PopulateWidthTierMenu(widthMenu, targetTab ?? GetSelectedContentTab());
+            PopulateWidthTierMenu(widthMenu, targetTab ?? GetSelectedContentTab());
+            return widthMenu;
+        }
+
+        private void PopulateWidthTierMenu(System.Windows.Controls.MenuItem widthMenu, TabItem targetTab)
+        {
+            ToolbarWidthTier current = GetWidthTier(targetTab);
+            widthMenu.Items.Clear();
+            widthMenu.Items.Add(CreateWidthTierMenuItem("默认（单列）", ToolbarWidthTier.Default, targetTab, current));
+            widthMenu.Items.Add(CreateWidthTierMenuItem("1 列宽（按钮至 120）", ToolbarWidthTier.OneColumnWide, targetTab, current));
+            widthMenu.Items.Add(CreateWidthTierMenuItem("2 列", ToolbarWidthTier.TwoColumn, targetTab, current));
+        }
+
+        private System.Windows.Controls.MenuItem CreateWidthTierMenuItem(
+            string header, ToolbarWidthTier tier, TabItem targetTab, ToolbarWidthTier current)
+        {
+            var item = new System.Windows.Controls.MenuItem
+            {
+                Header = header,
+                IsCheckable = true,
+                IsChecked = current == tier,
+                Background = (Brush)FindResource("MaxUiBackgroundColor"),
+                BorderThickness = new Thickness(0)
+            };
+            item.Click += (s, args) =>
+            {
+                TabItem tab = targetTab ?? GetSelectedContentTab();
+                if (tab != null)
+                {
+                    ApplyWidthTier(tab, tier, true);
+                }
+            };
+            return item;
+        }
+
+        private ToolbarWidthTier GetWidthTier(TabItem tab)
+        {
+            if (tab == null)
+            {
+                return ToolbarWidthTier.Default;
+            }
+            var custom = tab.Tag as CustomToolbarTab;
+            if (custom != null)
+            {
+                return NormalizeTier(custom.WidthTier);
+            }
+            string key = GetBuiltinWidthKey(tab);
+            ToolbarWidthTier tier;
+            if (!string.IsNullOrEmpty(key) && _builtinWidthTiers.TryGetValue(key, out tier))
+            {
+                return tier;
+            }
+            return ToolbarWidthTier.Default;
+        }
+
+        private static ToolbarWidthTier NormalizeTier(int value)
+        {
+            if (Enum.IsDefined(typeof(ToolbarWidthTier), value))
+            {
+                return (ToolbarWidthTier)value;
+            }
+            return ToolbarWidthTier.Default;
+        }
+
+        private string GetBuiltinWidthKey(TabItem tab)
+        {
+            if (tab == null)
+            {
+                return null;
+            }
+            if (tab.Resources.Contains(TabWidthKeyResource))
+            {
+                return tab.Resources[TabWidthKeyResource] as string;
+            }
+            if (ReferenceEquals(tab.Content, dockpanel))
+            {
+                return BuiltinAnimKey;
+            }
+            if (ReferenceEquals(tab.Content, rig_dockpanel))
+            {
+                return BuiltinRigKey;
+            }
+            return null;
+        }
+
+        private void SetWidthTier(TabItem tab, ToolbarWidthTier tier, bool save)
+        {
+            if (tab == null)
+            {
+                return;
+            }
+            var custom = tab.Tag as CustomToolbarTab;
+            if (custom != null)
+            {
+                custom.WidthTier = (int)tier;
+                if (save)
+                {
+                    SaveTabsConfig();
+                }
+                return;
+            }
+            string key = GetBuiltinWidthKey(tab);
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
+            _builtinWidthTiers[key] = tier;
+            if (save)
+            {
+                SaveBuiltinWidthTiers();
+            }
+        }
+
+        /// <summary>
+        /// 为指定 Tab 应用栏宽分档（每 Tab 独立）。选中该 Tab 时同步停靠最小宽度。
+        /// </summary>
+        private void ApplyWidthTier(TabItem tab, ToolbarWidthTier tier, bool save)
+        {
+            SetWidthTier(tab, tier, save);
+            if (tab != null && ReferenceEquals(MainTabControl.SelectedItem, tab))
+            {
+                ApplyDockConstraints(tier, forceHostWidth: true);
+            }
+            _lastAppliedAvail = -1; // 强制下一帧按新档位重算
+            ScheduleRefreshScriptButtonLayout(immediate: true);
+        }
+
+        private void ApplyDockConstraints(ToolbarWidthTier tier, bool forceHostWidth)
+        {
+            MinWidth = GetDockConstraintsPanelMin(tier);
+            MaxWidth = DockConstraintsPanelMax;
+            ClearValue(WidthProperty);
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+
+            try
+            {
+                Window host = Window.GetWindow(this);
+                if (host != null)
+                {
+                    host.MinWidth = MinWidth;
+                    host.MaxWidth = DockConstraintsPanelMax;
+                    if (forceHostWidth)
+                    {
+                        host.Width = MinWidth;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static double GetDockConstraintsPanelMin(ToolbarWidthTier tier)
+        {
+            switch (tier)
+            {
+                case ToolbarWidthTier.OneColumnWide:
+                    return DockConstraintsPanelMinOneColumnWide;
+                case ToolbarWidthTier.TwoColumn:
+                    return DockConstraintsPanelMinTwoColumn;
+                default:
+                    return DockConstraintsPanelMinDefault;
+            }
+        }
+
+        private static void GetLayoutMetrics(ToolbarWidthTier tier, double avail, out int cols, out double btnW)
+        {
+            cols = tier == ToolbarWidthTier.TwoColumn ? 2 : 1;
+            const double colGap = 4;
+            btnW = Math.Max(48, (avail - colGap * cols) / cols);
+            if (tier == ToolbarWidthTier.OneColumnWide && btnW > OneColumnButtonMaxWidth)
+            {
+                btnW = OneColumnButtonMaxWidth;
+            }
+        }
+
+        /// <summary>
+        /// 自适应核心：只刷新当前选中 Tab + 底部栏（隐藏 Tab 在选中时再刷）。
+        /// </summary>
+        private void RefreshScriptButtonLayout()
+        {
+            TabItem selected = GetSelectedContentTab();
+            ToolbarWidthTier selectedTier = GetWidthTier(selected);
+            double selectedAvail = MeasureTabContentWidth(selected);
+
+            // 宽度/档位/选中项未变则跳过（拖拽末帧与延迟回调常重复）
+            if (ReferenceEquals(selected, _lastAppliedSelectedTab)
+                && selectedTier == _lastAppliedSelectedTier
+                && Math.Abs(selectedAvail - _lastAppliedAvail) < 0.5)
+            {
+                return;
+            }
+            _lastAppliedSelectedTab = selected;
+            _lastAppliedSelectedTier = selectedTier;
+            _lastAppliedAvail = selectedAvail;
+
+            int selectedCols;
+            double selectedBtnW;
+            GetLayoutMetrics(selectedTier, selectedAvail, out selectedCols, out selectedBtnW);
+            ScriptButtonWidth = selectedBtnW;
+
+            ApplyBottomBarLayout(selectedAvail);
+
+            if (selected != null)
+            {
+                ApplyTabContentLayout(selected, selectedTier);
+            }
+        }
+
+        /// <summary>
+        /// 底部 Speed/时间/导入：始终 1 列。
+        /// 左右与上方列表对齐：Tab 条之后套 PanelLeftGutter+ContentLeftInset / ContentRightInset。
+        /// </summary>
+        private void ApplyBottomBarLayout(double availWidth)
+        {
+            double w = Math.Max(48, availWidth);
+
+            // TabControl 总宽 - 内容 ActualWidth ≈ Tab条 + dockpanel.Margin.Left（已含 PanelLeftGutter），勿再加一遍 8
+            double left = TabStripApproxWidth + PanelLeftGutter + ContentLeftInset;
+            TabItem selected = GetSelectedContentTab();
+            var content = selected != null ? selected.Content as FrameworkElement : null;
+            if (MainTabControl != null && content != null && content.IsVisible && content.ActualWidth > 20
+                && MainTabControl.ActualWidth > content.ActualWidth)
+            {
+                left = MainTabControl.ActualWidth - content.ActualWidth + ContentLeftInset;
+            }
+
+            if (BottomBarPanel != null)
+            {
+                BottomBarPanel.Margin = new Thickness(
+                    left,
+                    BottomBarPanel.Margin.Top,
+                    ContentRightInset,
+                    BottomBarPanel.Margin.Bottom);
+                BottomBarPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+            }
+
+            ApplyBottomBarItemWidth(MySpeedButton, w);
+            ApplyBottomBarItemWidth(sp_start, w);
+            ApplyBottomBarItemWidth(sp_end, w);
+            ApplyBottomBarItemWidth(importA, w);
+        }
+
+        private static void ApplyBottomBarItemWidth(FrameworkElement fe, double width)
+        {
+            if (fe == null)
+            {
+                return;
+            }
+            BindingOperations.ClearBinding(fe, FrameworkElement.WidthProperty);
+            BindingOperations.ClearBinding(fe, FrameworkElement.MaxWidthProperty);
+            fe.MinWidth = 48;
+            fe.Width = width;
+            fe.MaxWidth = width;
+            fe.HorizontalAlignment = HorizontalAlignment.Left;
+            // 单列末项：无额外右边距（与列表末列 ColumnGap=0 一致）
+            double top = fe.Margin.Top > 0 ? fe.Margin.Top : 1;
+            double bottom = fe.Margin.Bottom > 0 ? fe.Margin.Bottom : 1;
+            fe.Margin = new Thickness(0, top, 0, bottom);
+        }
+
+        private void ApplyTabContentLayout(TabItem tab, ToolbarWidthTier tier)
+        {
+            if (tab == null)
+            {
+                return;
+            }
+            int cols = tier == ToolbarWidthTier.TwoColumn ? 2 : 1;
+            var host = tab.Content as FrameworkElement;
+            double avail = MeasureHostContentWidth(host);
+            if (ReferenceEquals(tab.Content, dockpanel))
+            {
+                ApplyListLayout(MyListBox, cols, tier, avail);
+                ApplySolidItemsListLayout(avail);
+                ApplyAnimUtilityButtonsLayout(avail);
+                if (dockpanel != null)
+                {
+                    ApplyNdListBoxesLayout(dockpanel, cols, tier, avail);
+                }
+                return;
+            }
+            if (ReferenceEquals(tab.Content, rig_dockpanel))
+            {
+                if (rig_dockpanel != null)
+                {
+                    ApplyNdListBoxesLayout(rig_dockpanel, cols, tier, avail);
+                }
+                return;
+            }
+            var content = tab.Content as DependencyObject;
+            if (content != null)
+            {
+                ApplyNdListBoxesLayout(content, cols, tier, avail);
+            }
+        }
+
+        private double MeasureTabContentWidth(TabItem tab)
+        {
+            return MeasureHostContentWidth(tab != null ? tab.Content as FrameworkElement : null);
+        }
+
+        private double MeasureHostContentWidth(FrameworkElement panel)
+        {
+            if (panel == null)
+            {
+                panel = dockpanel ?? rig_dockpanel;
+            }
+            if (panel != null)
+            {
+                // 仅在尚未量到有效宽度时强制 UpdateLayout（同步布局很贵）
+                if (panel.ActualWidth <= 20)
+                {
+                    panel.UpdateLayout();
+                }
+                if (panel.IsVisible && panel.ActualWidth > 20)
+                {
+                    double w = Math.Max(48, panel.ActualWidth - ContentLeftInset - ContentRightInset);
+                    _lastContentWidth = w;
+                    return w;
+                }
+            }
+
+            // 切 Tab 首帧：用当前已选中且已布局的内容，或上次侧栏改宽后的有效宽度
+            TabItem selected = GetSelectedContentTab();
+            var selectedPanel = selected != null ? selected.Content as FrameworkElement : null;
+            if (selectedPanel != null && !ReferenceEquals(selectedPanel, panel))
+            {
+                if (selectedPanel.ActualWidth <= 20)
+                {
+                    selectedPanel.UpdateLayout();
+                }
+                if (selectedPanel.IsVisible && selectedPanel.ActualWidth > 20)
+                {
+                    double w = Math.Max(48, selectedPanel.ActualWidth - ContentLeftInset - ContentRightInset);
+                    _lastContentWidth = w;
+                    return w;
+                }
+            }
+            if (_lastContentWidth > 20)
+            {
+                return _lastContentWidth;
+            }
+
+            if (MainTabControl != null && MainTabControl.ActualWidth > 30)
+            {
+                return Math.Max(48, MainTabControl.ActualWidth - TabStripApproxWidth - PanelLeftGutter - ContentLeftInset - ContentRightInset);
+            }
+            double fallback = ActualWidth;
+            if (double.IsNaN(fallback) || fallback < 40)
+            {
+                fallback = MinWidth;
+            }
+            return Math.Max(48, fallback - TabStripApproxWidth - PanelLeftGutter - ContentLeftInset - ContentRightInset);
+        }
+
+        private void ApplyNdListBoxesLayout(DependencyObject parent, int columns, ToolbarWidthTier tier, double availWidth)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+            int n = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < n; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                var nd = child as NDListBox;
+                if (nd != null)
+                {
+                    // 始终用宿主测得的 availWidth；勿用未显示/未刷新的 nd.ActualWidth（切 Tab 首帧会偏）
+                    ListBox inner = nd.FindName("MyListBox") as ListBox ?? FindVisualChild<ListBox>(nd);
+                    ApplyListLayout(inner, columns, tier, availWidth);
+                }
+                else
+                {
+                    ApplyNdListBoxesLayout(child, columns, tier, availWidth);
+                }
+            }
+        }
+
+        /// <summary>列与列之间的间距；末列不加，保证 1 列/2 列右缘对齐。</summary>
+        private const double ColumnGap = 4;
+
+        private static void ApplyListLayout(ListBox listBox, int columns, ToolbarWidthTier tier, double availWidth)
+        {
+            if (listBox == null)
+            {
+                return;
+            }
+
+            int cols = Math.Max(1, columns);
+            listBox.ClearValue(FrameworkElement.WidthProperty);
+            listBox.ClearValue(FrameworkElement.MaxWidthProperty);
+            listBox.HorizontalAlignment = HorizontalAlignment.Stretch;
+            listBox.Margin = new Thickness(
+                ContentLeftInset,
+                listBox.Margin.Top,
+                ContentRightInset,
+                listBox.Margin.Bottom);
+
+            double gridW = Math.Max(48, availWidth);
+            double cellW = gridW / cols;
+
+            var grid = FindVisualChild<UniformGrid>(listBox);
+            if (grid != null)
+            {
+                grid.Columns = cols;
+                grid.Width = gridW;
+                grid.HorizontalAlignment = HorizontalAlignment.Left;
+            }
+
+            int count = listBox.Items != null ? listBox.Items.Count : 0;
+            for (int i = 0; i < count; i++)
+            {
+                var container = listBox.ItemContainerGenerator.ContainerFromIndex(i) as ListBoxItem;
+                if (container == null)
+                {
+                    continue;
+                }
+                container.ClearValue(FrameworkElement.WidthProperty);
+                container.ClearValue(FrameworkElement.MinWidthProperty);
+                container.ClearValue(FrameworkElement.MaxWidthProperty);
+                container.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+
+                // 只有非末列留 ColumnGap；末列贴齐网格右缘，1 列与 2 列右边距一致
+                bool lastCol = (i % cols) == (cols - 1);
+                double gap = lastCol ? 0 : ColumnGap;
+                double btnW = Math.Max(48, cellW - gap);
+                if (tier == ToolbarWidthTier.OneColumnWide && btnW > OneColumnButtonMaxWidth)
+                {
+                    btnW = OneColumnButtonMaxWidth;
+                }
+                ApplyScriptButtonChrome(container, btnW, gap);
+            }
+        }
+
+        /// <summary>
+        /// 动画页窄按钮列表：按可用宽度均分，最多 SolidItemsMaxColumns 列；不写死 Width=30。
+        /// </summary>
+        private void ApplySolidItemsListLayout(double availWidth)
+        {
+            if (MyItemsControl == null)
+            {
+                return;
+            }
+
+            double gridW = Math.Max(48, availWidth);
+            int cols = Math.Max(1, Math.Min(SolidItemsMaxColumns, (int)(gridW / SolidItemsMinCellWidth)));
+            double cellW = gridW / cols;
+
+            MyItemsControl.ClearValue(FrameworkElement.WidthProperty);
+            MyItemsControl.ClearValue(FrameworkElement.MaxWidthProperty);
+            MyItemsControl.HorizontalAlignment = HorizontalAlignment.Stretch;
+            MyItemsControl.Margin = new Thickness(
+                ContentLeftInset,
+                MyItemsControl.Margin.Top,
+                ContentRightInset,
+                MyItemsControl.Margin.Bottom);
+
+            var grid = FindVisualChild<UniformGrid>(MyItemsControl);
+            if (grid != null)
+            {
+                grid.Columns = cols;
+                grid.Width = gridW;
+                grid.HorizontalAlignment = HorizontalAlignment.Left;
+            }
+
+            int count = MyItemsControl.Items != null ? MyItemsControl.Items.Count : 0;
+            for (int i = 0; i < count; i++)
+            {
+                var container = MyItemsControl.ItemContainerGenerator.ContainerFromIndex(i) as ListBoxItem;
+                if (container == null)
+                {
+                    continue;
+                }
+                container.ClearValue(FrameworkElement.WidthProperty);
+                container.ClearValue(FrameworkElement.MinWidthProperty);
+                container.ClearValue(FrameworkElement.MaxWidthProperty);
+                container.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+
+                bool lastCol = (i % cols) == (cols - 1);
+                double gap = lastCol ? 0 : ColumnGap;
+                double btnW = Math.Max(24, cellW - gap);
+                ApplySolidItemButtonChrome(container, btnW, gap);
+            }
+        }
+
+        /// <summary>
+        /// 动画页底部工具区：固定 2 列，边距/宽度与上方列表相同（末列无 ColumnGap）。
+        /// </summary>
+        private void ApplyAnimUtilityButtonsLayout(double availWidth)
+        {
+            // 用 FindName，避免各 Max* 工程未重编 XAML 时 .g.cs 缺字段导致 CS0103
+            var panel = FindName("AnimUtilityPanel") as StackPanel;
+            if (panel != null)
+            {
+                panel.Margin = new Thickness(
+                    ContentLeftInset,
+                    panel.Margin.Top,
+                    ContentRightInset,
+                    panel.Margin.Bottom);
+                panel.HorizontalAlignment = HorizontalAlignment.Stretch;
+            }
+
+            ApplyFixedUniformGridLayout(FindName("AnimUtilityGridLink") as UniformGrid, 2, availWidth, 24);
+            ApplyFixedUniformGridLayout(FindName("AnimUtilityGridVisA") as UniformGrid, 2, availWidth, 24);
+            ApplyFixedUniformGridLayout(FindName("AnimUtilityGridVisB") as UniformGrid, 2, availWidth, 24);
+        }
+
+        private static void ApplyFixedUniformGridLayout(UniformGrid grid, int columns, double availWidth, double minButtonWidth)
+        {
+            if (grid == null)
+            {
+                return;
+            }
+
+            int cols = Math.Max(1, columns);
+            double gridW = Math.Max(48, availWidth);
+            double cellW = gridW / cols;
+
+            grid.Columns = cols;
+            grid.Width = gridW;
+            grid.HorizontalAlignment = HorizontalAlignment.Left;
+
+            int index = 0;
+            foreach (UIElement child in grid.Children)
+            {
+                var fe = child as FrameworkElement;
+                if (fe == null)
+                {
+                    index++;
+                    continue;
+                }
+
+                bool lastCol = (index % cols) == (cols - 1);
+                double gap = lastCol ? 0 : ColumnGap;
+                double btnW = Math.Max(minButtonWidth, cellW - gap);
+
+                BindingOperations.ClearBinding(fe, FrameworkElement.WidthProperty);
+                BindingOperations.ClearBinding(fe, FrameworkElement.MaxWidthProperty);
+                fe.MinWidth = minButtonWidth;
+                fe.Width = btnW;
+                fe.MaxWidth = btnW;
+                fe.HorizontalAlignment = HorizontalAlignment.Left;
+
+                double top = fe.Margin.Top > 0 ? fe.Margin.Top : 1;
+                double bottom = fe.Margin.Bottom > 0 ? fe.Margin.Bottom : 1;
+                fe.Margin = new Thickness(0, top, gap, bottom);
+                index++;
+            }
+        }
+
+        private static void ApplySolidItemButtonChrome(DependencyObject parent, double buttonWidth, double rightMargin)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                var btn = child as System.Windows.Controls.Button;
+                if (btn != null && btn.Name == "MyItemsControlButon")
+                {
+                    BindingOperations.ClearBinding(btn, FrameworkElement.WidthProperty);
+                    BindingOperations.ClearBinding(btn, FrameworkElement.MaxWidthProperty);
+                    btn.MinWidth = 24;
+                    btn.Width = buttonWidth;
+                    btn.MaxWidth = buttonWidth;
+                    btn.HorizontalAlignment = HorizontalAlignment.Left;
+                    double top = btn.Margin.Top > 1 ? btn.Margin.Top : 1;
+                    btn.Margin = new Thickness(0, top, rightMargin, 1);
+                }
+                else
+                {
+                    ApplySolidItemButtonChrome(child, buttonWidth, rightMargin);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 同一列/同一档内按钮等宽；宽度来自内容区均分，左边距仍由面板 gutter 保证。
+        /// </summary>
+        private static void ApplyScriptButtonChrome(DependencyObject parent, double buttonWidth, double rightMargin)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                var btn = child as System.Windows.Controls.Button;
+                if (btn != null && btn.Name == "MyListBoxButton")
+                {
+                    BindingOperations.ClearBinding(btn, FrameworkElement.WidthProperty);
+                    BindingOperations.ClearBinding(btn, FrameworkElement.MaxWidthProperty);
+                    btn.MinWidth = 48;
+                    btn.Width = buttonWidth;
+                    btn.MaxWidth = buttonWidth;
+                    btn.HorizontalAlignment = HorizontalAlignment.Left;
+                    double top = btn.Margin.Top > 0 ? btn.Margin.Top : 1;
+                    btn.Margin = new Thickness(0, top, rightMargin, 2);
+                }
+                else
+                {
+                    ApplyScriptButtonChrome(child, buttonWidth, rightMargin);
+                }
+            }
+        }
+
+        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+            int n = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < n; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                var match = child as T;
+                if (match != null)
+                {
+                    return match;
+                }
+                match = FindVisualChild<T>(child);
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+            return null;
+        }
+
+        private void LoadBuiltinWidthTiers()
+        {
+            _builtinWidthTiers.Clear();
+            _builtinWidthTiers[BuiltinAnimKey] = ToolbarWidthTier.Default;
+            _builtinWidthTiers[BuiltinRigKey] = ToolbarWidthTier.Default;
+            try
+            {
+                string path = WebAddress.ToolBarWidthTierConfig;
+                if (!File.Exists(path))
+                {
+                    return;
+                }
+                string text = File.ReadAllText(path).Trim();
+                if (string.IsNullOrEmpty(text))
+                {
+                    return;
+                }
+                // 兼容旧版：整文件一个数字 = 全局分档，迁移到内置 Tab
+                int legacy;
+                if (int.TryParse(text, out legacy) && Enum.IsDefined(typeof(ToolbarWidthTier), legacy))
+                {
+                    var tier = (ToolbarWidthTier)legacy;
+                    _builtinWidthTiers[BuiltinAnimKey] = tier;
+                    _builtinWidthTiers[BuiltinRigKey] = tier;
+                    return;
+                }
+                string[] lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string line = lines[i].Trim();
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0)
+                    {
+                        continue;
+                    }
+                    string key = line.Substring(0, eq).Trim();
+                    string val = line.Substring(eq + 1).Trim();
+                    int n;
+                    if (string.IsNullOrEmpty(key) || !int.TryParse(val, out n) ||
+                        !Enum.IsDefined(typeof(ToolbarWidthTier), n))
+                    {
+                        continue;
+                    }
+                    _builtinWidthTiers[key] = (ToolbarWidthTier)n;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private void SaveBuiltinWidthTiers()
+        {
+            try
+            {
+                if (!Directory.Exists(WebAddress.apppath))
+                {
+                    Directory.CreateDirectory(WebAddress.apppath);
+                }
+                var sb = new StringBuilder();
+                foreach (var kv in _builtinWidthTiers)
+                {
+                    sb.Append(kv.Key).Append('=').Append((int)kv.Value).AppendLine();
+                }
+                File.WriteAllText(WebAddress.ToolBarWidthTierConfig, sb.ToString());
+            }
+            catch
+            {
+            }
         }
 
         private void CreateNewCustomTab()
@@ -722,6 +1696,8 @@ namespace NDToolsBox.TextSearch
         private void ToolbarsV_Unloaded(object sender, RoutedEventArgs e)
         {
             this.Unloaded -= ToolbarsV_Unloaded;
+            SizeChanged -= ToolbarsV_SizeChanged;
+            _layoutRefreshGeneration++;
             if (m_deleg != null)
             {
                 ScriptsUtilities.global.UnRegisterNotification(m_deleg, null, SystemNotificationCode.TimerangeChange);

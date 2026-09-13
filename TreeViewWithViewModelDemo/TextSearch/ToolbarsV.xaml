@@ -10,7 +10,8 @@
              xmlns:Nd="clr-namespace:NDToolsBox"
             
              mc:Ignorable="d" 
-             MaxWidth="96" MinWidth="96" MinHeight="600" 
+             x:Name="RootToolbars"
+             MaxWidth="280" MinWidth="96" MinHeight="600" 
              >
     
     <UserControl.Resources>
@@ -156,11 +157,11 @@
         </Style>
 
         <Style x:Key="listBoxItemStyle" TargetType="{x:Type ListBoxItem}">
-            <Setter  Property="Width" Value="70" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ListBoxItem}">
-                        <ContentPresenter />
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -338,10 +339,12 @@
             <MenuItem Header="删除" Background="{StaticResource MaxUiBackgroundColor}" BorderThickness="0" Click="CustomTabDelete_Click"/>
         </ContextMenu>
         <Style TargetType="{x:Type TabItem}" x:Key="TabItemStyle">
+            <Setter Property="Panel.ZIndex" Value="2"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TabItem}">
-                        <Grid >
+                        <Grid>
+                            <!-- 右边距略侵入内容，与内容区衔接；靠 ZIndex 保证 Tab 不被内容盖住 -->
                             <Border Name="Border" Background="{StaticResource MaxUiBackgroundColor}" Margin="0,2,-6,0" BorderBrush="Black" BorderThickness="1,1,0,1" CornerRadius="4" SnapsToDevicePixels="True">
                                 <ContentPresenter x:Name="ContentSite" ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" RecognizesAccessKey="True" />
                             </Border>
@@ -349,6 +352,7 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Panel.ZIndex" Value="10"/>
                                 <Setter Property="FontWeight" Value="Bold" />
                                 <Setter TargetName="Border" Property="Background" Value="{StaticResource MaxUiBackgroundColor}" />
                                 <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource HeadLineColor}" />
@@ -395,87 +399,86 @@
             <Setter Property="Grid.Margin" Value="6,10,10,10" />
         </Style>
     </UserControl.Resources>
-    <StackPanel Background="{StaticResource MaxUiBackgroundColor}">
-        <TabControl x:Name="MainTabControl" BorderThickness="0 0 0 0" Padding ="0" Margin="0" TabStripPlacement="Left" Background="{StaticResource MaxUiBackgroundColor}" SelectionChanged="MainTabControl_SelectionChanged">
-            <TabItem Header="动画" Background ="{StaticResource ButtonColor_B}"  Width="14" Height="60" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}">
-                <StackPanel x:Name="dockpanel" Orientation="Vertical" Width="74" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
-                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True">
-                    <!--  -->
+    <StackPanel Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Stretch">
+        <TabControl x:Name="MainTabControl" BorderThickness="0 0 0 0" Padding ="0" Margin="0" TabStripPlacement="Left" Background="{StaticResource MaxUiBackgroundColor}" SelectionChanged="MainTabControl_SelectionChanged" HorizontalContentAlignment="Stretch">
+            <TabItem Header="动画" Background ="{StaticResource ButtonColor_B}"  Width="14" Height="60" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}" HorizontalContentAlignment="Stretch">
+                <StackPanel x:Name="dockpanel" Orientation="Vertical" MinWidth="74" Margin="8,0,0,0" ClipToBounds="True" HorizontalAlignment="Stretch" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
+                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <!-- 宽按钮列表 -->
                     <ListBox x:Name="MyListBox" BorderThickness="0" Background="{StaticResource MaxUiBackgroundColor}" MinHeight="48" ItemContainerStyle="{StaticResource listBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
-                    FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 0 0"
+                    FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="MyListBox_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" MouseLeftButtonUp="MyListBox_MouseLeftButtonUp" Margin="2 0 2 0" HorizontalAlignment="Stretch"
                             >
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="1" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
 
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="{Binding DataContext.ItemRowMargin, RelativeSource={RelativeSource AncestorType=ListBox}}" >
-                                    <!-- <Ellipse Height="14" Width="14" Fill="{Binding Color}"  VerticalAlignment="Center" Margin="5"/>
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5" FontSize="16"/>-->
-                                        <Button x:Name="MyListBoxButton" Content="{Binding Name}" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource BtnInfoStyle}" Width="64" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Button_Click"/>
-                                </StackPanel>
+                                    <Button x:Name="MyListBoxButton" Content="{Binding Name}" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource BtnInfoStyle}" Margin="0,1,4,2" MinWidth="48" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center" Click="Button_Click"/>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding Space}" Value="true">
-                                            <Setter Property="Margin" TargetName="MyListBoxButton" Value="0 5 0 0"/>
-                                    
+                                            <Setter Property="Margin" TargetName="MyListBoxButton" Value="0,5,4,2"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Space}" Value="false">
-                                            <Setter Property="Margin" TargetName="MyListBoxButton" Value="0"/>
+                                            <Setter Property="Margin" TargetName="MyListBoxButton" Value="0,1,4,2"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
-                        
                                 </DataTemplate>
                         </ListBox.ItemTemplate>
                 
                     </ListBox>
 
                     </Expander>
-
-                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 ">
-                        <ListBox x:Name="MyItemsControl" BorderThickness="0" ItemContainerStyle="{StaticResource listBoxItemStyle2}" Background="{StaticResource MaxUiBackgroundColor}" MinHeight="48" ItemsSource="{Binding SolidItems}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="ItemsControl_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
+                    <!-- 窄按钮列表：UniformGrid 均分，最多 4 列；左边距与宽列表一致（面板 Margin=8 + ListBox Margin=2） -->
+                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 " HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <ListBox x:Name="MyItemsControl" BorderThickness="0" ItemContainerStyle="{StaticResource listBoxItemStyle}" Background="{StaticResource MaxUiBackgroundColor}" MinHeight="48" ItemsSource="{Binding SolidItems}" ContextMenu="{StaticResource dynamicContextMenu}" AllowDrop="True" Drop="ItemsControl_Drop" DragEnter="MyListBox_DragEnter" DragOver="MyListBox_DragOver" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}" Margin="2 0 2 0" HorizontalAlignment="Stretch">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <!--<UniformGrid Columns="2" Margin="0 0 0 0" Background="Transparent" HorizontalAlignment="Center" />-->
-                                    <WrapPanel Width="Auto" IsItemsHost="True" x:Name="wpanel" Margin="4 0 0 0" Background="Transparent"/>
+                                    <UniformGrid Columns="4" />
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemTemplate>
-                                <DataTemplate >
-                                    <Button x:Name="MyItemsControlButon" Width="30" Content ="{Binding Name}" Margin="1 1 1 1" Style="{StaticResource BtnInfoStyle}" Background ="{StaticResource ButtonColor_B}" Click="Button_Click"/>
+                                <DataTemplate>
+                                    <Button x:Name="MyItemsControlButon" Content="{Binding Name}" Margin="0,1,0,1" MinWidth="24"
+                                            HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                            Style="{StaticResource BtnInfoStyle}" Background="{StaticResource ButtonColor_B}" Click="Button_Click"/>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding Space}" Value="true">
-                                            <Setter Property="Margin" TargetName="MyItemsControlButon" Value="1 15 1 1"/>
+                                            <Setter Property="Margin" TargetName="MyItemsControlButon" Value="0 15 0 1"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Space}" Value="false">
-                                            <Setter Property="Margin" TargetName="MyItemsControlButon" Value="1 1 1 1"/>
+                                            <Setter Property="Margin" TargetName="MyItemsControlButon" Value="0 1 0 1"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
-                    
                         </ListBox>
                     </Expander>
-                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 ">
-                        <StackPanel Margin="0 0 0 0" HorizontalAlignment="Center" VerticalAlignment="Center" >
-                            <UniformGrid Columns="2" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
-                            <Button Width="30" Margin="1 1 1 1" Style="{StaticResource BtnStyle}" Content="链接" Click="Button_Click_link" Background ="{StaticResource ButtonColor_B}" ToolTip="先选的链接给后选"/>
-                                <Button Width="30" Margin="1 1 1 1" Style="{StaticResource BtnStyle}" Content="挂配" Click="Button_Click_Align" Background ="{StaticResource ButtonColor_B}" ToolTip="先选对齐链接给后选"/>
-                        </UniformGrid>
+                    <Expander Header="..." Style="{StaticResource ExpanderStyle1}" IsExpanded="True" Margin="0 5 0 0 "
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <!-- 固定 2 列；边距/宽度与上方列表一致（面板 8 + 此处 2,0,2,0；末列无列间距） -->
+                        <StackPanel x:Name="AnimUtilityPanel" Margin="2,0,2,0" HorizontalAlignment="Stretch">
+                            <UniformGrid x:Name="AnimUtilityGridLink" Columns="2" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Left">
+                                <Button MinWidth="24" Margin="0,1,0,1" Style="{StaticResource BtnStyle}" Content="链接" Click="Button_Click_link" Background="{StaticResource ButtonColor_B}" ToolTip="先选的链接给后选" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <Button MinWidth="24" Margin="0,1,0,1" Style="{StaticResource BtnStyle}" Content="挂配" Click="Button_Click_Align" Background="{StaticResource ButtonColor_B}" ToolTip="先选对齐链接给后选" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                            </UniformGrid>
 
-                        <UniformGrid Columns="2" Margin="0 0 0 0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bip" Click="ToggleButton_Checked_bip" Background ="{StaticResource ButtonColor_C}" ToolTip="隐藏 biped"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bone" Click="ToggleButton_Checked_onlyBone" Background ="{StaticResource ButtonColor_C}" ToolTip="隐藏 Bone"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Content="Box" Click="ToggleButton_Checked_box" Background ="{StaticResource ButtonColor_C}" ToolTip="显示为 Box"/>
+                            <UniformGrid x:Name="AnimUtilityGridVisA" Columns="2" Margin="0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Left">
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bip" Click="ToggleButton_Checked_bip" Background="{StaticResource ButtonColor_C}" ToolTip="隐藏 biped" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Content="Bone" Click="ToggleButton_Checked_onlyBone" Background="{StaticResource ButtonColor_C}" ToolTip="隐藏 Bone" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Content="Box" Click="ToggleButton_Checked_box" Background="{StaticResource ButtonColor_C}" ToolTip="显示为 Box" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                            </UniformGrid>
 
-                        </UniformGrid>
-
-                        <UniformGrid Columns="2" Margin="0 4 0 0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Center" >
-
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Mesh" Click="ToggleButton_Checked_Mesh" ToolTip="隐藏模型"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Shape" Click="ToggleButton_Checked_Shape" ToolTip="隐藏曲线形状"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Help" Click="ToggleButton_Checked_Help" ToolTip="隐藏Help"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Bone" Click="ToggleButton_Checked_Bone" ToolTip="隐藏骨骼"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Light" Click="ToggleButton_Checked_Light" ToolTip="隐藏灯光"/>
-                                <ToggleButton Width="30" Height="20" Margin="1 1 1 1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Camera" Click="ToggleButton_Checked_Camera" ToolTip="隐藏相机"/>
-                        </UniformGrid>
+                            <UniformGrid x:Name="AnimUtilityGridVisB" Columns="2" Margin="0,4,0,0" Background="{StaticResource MaxUiBackgroundColor}" HorizontalAlignment="Left">
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Mesh" Click="ToggleButton_Checked_Mesh" ToolTip="隐藏模型" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Shape" Click="ToggleButton_Checked_Shape" ToolTip="隐藏曲线形状" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Help" Click="ToggleButton_Checked_Help" ToolTip="隐藏Help" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Bone" Click="ToggleButton_Checked_Bone" ToolTip="隐藏骨骼" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Light" Click="ToggleButton_Checked_Light" ToolTip="隐藏灯光" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <ToggleButton MinWidth="24" Height="20" Margin="0,1,0,1" Style="{StaticResource CustomToggleButtonStyle}" Background="{StaticResource ButtonColor_D}" Content="Camera" Click="ToggleButton_Checked_Camera" ToolTip="隐藏相机" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                            </UniformGrid>
                         </StackPanel>
                     </Expander>
                     
@@ -485,8 +488,8 @@
 
                 </StackPanel>
             </TabItem>
-            <TabItem Header="绑定" Width="14" Height="60" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}">
-                <StackPanel x:Name="rig_dockpanel" Orientation="Vertical" Width="74" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
+            <TabItem Header="绑定" Width="14" Height="60" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}" HorizontalContentAlignment="Stretch">
+                <StackPanel x:Name="rig_dockpanel" Orientation="Vertical" MinWidth="74" Margin="8,0,0,0" ClipToBounds="True" HorizontalAlignment="Stretch" Background="{StaticResource MaxUiBackgroundColor}" GotKeyboardFocus="dockpanel_GotKeyboardFocus" LostKeyboardFocus="dockpanel_LostKeyboardFocus" IsEnabledChanged="dockpanel_IsEnabledChanged">
                         <!--  -->
                     <Nd:NDListBox x:Name="MyListBox_Rig" />
 
@@ -498,17 +501,17 @@
             </TabItem>
             <TabItem x:Name="AddTabItem" Header="+" Width="14" Height="40" Background ="{StaticResource ButtonColor_B}" Margin="0" Padding="0" Style="{StaticResource TabItemStyle}" ToolTip="左键新建 Tab，右键可导入" PreviewMouseLeftButtonDown="AddTabItem_PreviewMouseLeftButtonDown" PreviewMouseRightButtonUp="AddTabItem_PreviewMouseRightButtonUp"/>
         </TabControl>
-        <Border BorderThickness="0, 2,0,0" CornerRadius="0" BorderBrush="{StaticResource ButtonColor_A}" Margin="0 10 0 0">
-
-            <WrapPanel Orientation="Horizontal" Background="{DynamicResource MaxUiBackgroundColor}" HorizontalAlignment="Center" Margin="0 5 0 0" >
-                <ToggleButton x:Name="MySpeedButton" Content="Speed" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource CustomToggleButtonStyle}" Width="70" ContextMenu="{StaticResource dynamicSpeedContextMenu}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Click="MySpeedButton_Click"/>
-                <maxwpf:WpfSpinner x:Name="sp_start" Width="70" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeStart }" Precision="0" Margin="0 4 0 1" VerticalContentAlignment="Center" />
-                <maxwpf:WpfSpinner x:Name="sp_end" Width="70" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeEnd}" Precision="0" Margin="0 1 0 1" VerticalContentAlignment="Center" />
-
-            <Button x:Name="importA" Style="{StaticResource importBox}" ToolTip="FBX 拖拽到此" Width="70" Height="30" Margin="0 4 0 2" VerticalContentAlignment="Center" AllowDrop="True" Drop="inport_Drop" DragEnter="inport_DragEnter"/>
-            
-
-            </WrapPanel>
+        <Border BorderThickness="0, 2,0,0" CornerRadius="0" BorderBrush="{StaticResource ButtonColor_A}" Margin="0 10 0 0" HorizontalAlignment="Stretch">
+            <!-- 始终单列；宽度由代码按内容区均分，不随 Tab 的 1/2 列档换行 -->
+            <StackPanel x:Name="BottomBarPanel" Orientation="Vertical" Background="{DynamicResource MaxUiBackgroundColor}"
+                        HorizontalAlignment="Stretch" Margin="0,5,0,0">
+                <ToggleButton x:Name="MySpeedButton" Content="Speed" ToolTip="{Binding ToolTip}" Background="{StaticResource ButtonColor_A}" Style="{StaticResource CustomToggleButtonStyle}"
+                              MinWidth="48" Height="22" Margin="0,1,0,2" ContextMenu="{StaticResource dynamicSpeedContextMenu}"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" Click="MySpeedButton_Click"/>
+                <maxwpf:WpfSpinner x:Name="sp_start" MinWidth="48" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeStart }" Precision="0" Margin="0,1,0,1" HorizontalAlignment="Left" VerticalContentAlignment="Center" />
+                <maxwpf:WpfSpinner x:Name="sp_end" MinWidth="48" Scale="1" Background="{StaticResource ButtonColor_A}" IsShowingEditBox="True" Value="{Binding TimeEnd}" Precision="0" Margin="0,1,0,1" HorizontalAlignment="Left" VerticalContentAlignment="Center" />
+                <Button x:Name="importA" Style="{StaticResource importBox}" ToolTip="FBX 拖拽到此" MinWidth="48" Height="30" Margin="0,1,0,2" HorizontalAlignment="Left" VerticalContentAlignment="Center" AllowDrop="True" Drop="inport_Drop" DragEnter="inport_DragEnter"/>
+            </StackPanel>
         </Border>
     </StackPanel>
 </UserControl>
